@@ -7,7 +7,14 @@ G_STYLE  = 'Killzone Box & Label Styles'
 G_TIME   = 'Session Times (HHMM-HHMM)'
 G_TDO    = 'True Day Open (Midnight)'
 G_H4     = '4-Hour Opening Price Lines'
+G_HL     = 'HTF High/Low Levels (PDH/PDL & PWH/PWL)'
+G_GAPS   = 'Opening Gaps (NDOG & NWOG)'
 G_RANGE  = 'Session Range Boxes & Lines'
+
+// Timeframe Check Rules
+tf_is_valid = timeframe.isintraday and timeframe.multiplier <= 60
+tf_in_seconds = timeframe.in_seconds()
+tf_gap_valid = tf_in_seconds >= timeframe.in_seconds("60") and tf_in_seconds <= timeframe.in_seconds("1W")
 
 // ==========================================
 // 1. KILLZONE TOGGLES & STYLES
@@ -15,7 +22,6 @@ G_RANGE  = 'Session Range Boxes & Lines'
 kz_filter          = input.bool(true, "Master Killzones Toggle", group=G_KZ)
 kz_style           = input.string("Label", "Killzone Display Style", options=["Label", "Top", "Bottom"], inline="style_main", group=G_KZ)
 
-// Individual Killzone Toggles (Turns off both main label/lines and the session evaluation)
 show_asia_kz       = input.bool(true, "Asia", inline="asia_t", group=G_KZ)
 asia_color         = input.color(color.new(#ea7e7e, 80), "", inline="asia_t", group=G_KZ)
 
@@ -54,21 +60,58 @@ kz_text_size = get_text_size(kz_text_size_str)
 // ==========================================
 asia_time_inp    = input.session("2000-0000", "Asia Session", group=G_TIME)
 lokz_time_inp    = input.session("0200-0500", "London Session", group=G_TIME)
-nyam_time_inp    = input.session("0930-1100", "NY AM Session", group=G_TIME)
+nyam_time_inp    = input.session("0830-1100", "NY AM Session (Extended)", group=G_TIME)
 nylunch_time_inp = input.session("1200-1300", "NY Lunch Session", group=G_TIME)
 nypm_time_inp    = input.session("1330-1600", "NY PM Session", group=G_TIME)
 
 // ==========================================
-// 3. TRUE DAY OPEN (MIDNIGHT OPEN)
+// 3. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 LINE
 // ==========================================
 show_daily       = input.bool(true, "Vertical Line at Daily Open", group=G_TDO)
-show_mnoline     = input.bool(true, "Show True Day Open Line", inline="tdo_m", group=G_TDO)
+show_mnoline     = input.bool(true, "Show True Day Open Line (Max 2)", inline="tdo_m", group=G_TDO)
 mno_color        = input.color(color.new(color.orange, 20), "", inline="tdo_m", group=G_TDO)
 mno_style        = input.string(line.style_dotted, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="tdo_s", group=G_TDO)
 mno_width        = input.int(1, "Width", minval=1, maxval=5, inline="tdo_s", group=G_TDO)
 
+show_930_line    = input.bool(true, "Vertical Line at 9:30 AM (Weekly Reset)", group=G_TDO)
+line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", group=G_TDO)
+
 // ==========================================
-// 4. 4-HOUR OPENING PRICE LINES
+// 4. HTF HIGH / LOW LEVELS (PDH/PDL & PWH/PWL)
+// ==========================================
+show_pdh         = input.bool(true, "Show PDH", inline="pdh_t", group=G_HL)
+pdh_color        = input.color(color.green, "", inline="pdh_t", group=G_HL)
+
+show_pdl         = input.bool(true, "Show PDL", inline="pdl_t", group=G_HL)
+pdl_color        = input.color(color.red, "", inline="pdl_t", group=G_HL)
+
+show_pwh         = input.bool(true, "Show PWH", inline="pwh_t", group=G_HL)
+pwh_color        = input.color(color.lime, "", inline="pwh_t", group=G_HL)
+
+show_pwl         = input.bool(true, "Show PWL", inline="pwl_t", group=G_HL)
+pwl_color        = input.color(color.maroon, "", inline="pwl_t", group=G_HL)
+
+hl_line_style    = input.string(line.style_solid, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="hl_s", group=G_HL)
+hl_line_width    = input.int(1, "Width", minval=1, maxval=5, inline="hl_s", group=G_HL)
+hl_line_transp   = input.int(0, "Line Transparency (0-100)", minval=0, maxval=100, group=G_HL)
+show_hl_labels   = input.bool(true, "Show Labels on Right", group=G_HL)
+
+// ==========================================
+// 5. OPENING GAPS (NDOG & NWOG)
+// ==========================================
+show_ndog        = input.bool(true, "Show NDOG (New Day Opening Gap)", inline="ndog_t", group=G_GAPS)
+ndog_color       = input.color(color.blue, "", inline="ndog_t", group=G_GAPS)
+
+show_nwog        = input.bool(true, "Show NWOG (New Week Opening Gap)", inline="nwog_t", group=G_GAPS)
+nwog_color       = input.color(color.purple, "", inline="nwog_t", group=G_GAPS)
+
+gap_transp       = input.int(80, "Gap Box Transparency (0-100)", minval=0, maxval=100, group=G_GAPS)
+gap_text_color   = input.color(color.white, "Gap Text Color", inline="gap_txt", group=G_GAPS)
+gap_text_sz_str  = input.string("tiny", "Text Size", options=["auto", "tiny", "small", "normal", "large"], inline="gap_txt", group=G_GAPS)
+gap_text_size    = get_text_size(gap_text_sz_str)
+
+// ==========================================
+// 6. 4-HOUR OPENING PRICE LINES & SESSION RANGE
 // ==========================================
 show_4h_opens    = input.bool(true, "Show 4-Hour Open Lines", inline="h4_m", group=G_H4)
 h4_color         = input.color(color.new(color.aqua, 30), "", inline="h4_m", group=G_H4)
@@ -83,9 +126,6 @@ show_h4_0600     = input.bool(true, "6:00 AM", group=G_H4)
 show_h4_1000     = input.bool(true, "10:00 AM", group=G_H4)
 show_h4_1400     = input.bool(true, "2:00 PM", group=G_H4)
 
-// ==========================================
-// 5. SESSION RANGE BOXES & EXTENSIONS
-// ==========================================
 show_asia_box    = input.bool(true, "Asia Box", inline="r_asia", group=G_RANGE)
 ext_asia_line    = input.bool(true, "Extend Lines", inline="r_asia", group=G_RANGE)
 
@@ -105,52 +145,51 @@ range_type       = input.string("Wicks", "Use Wicks or Bodies", options=["Wicks"
 pipsFilter       = input.bool(false, "Range Max Pips Filter", inline="pf", group=G_RANGE)
 maxPips          = input.int(30, "Max Pips", inline="pf", group=G_RANGE)
 
-// ==========================================
-// FIXED GLOBAL 4H FUNCTION
-// ==========================================
-f_check_h4(start_sess, stop_hour, toggle, lbl_text) =>
-    var line h4_line = na
-    var label h4_lbl  = na
-    var bool is_active = false
-    
-    bool is_start = not na(time(timeframe.period, session = start_sess, timezone = "America/New_York"))
-    bool within_3_days = (timenow - time) <= 259200000
-    
-    if is_start and not is_start[1] and show_4h_opens and toggle and within_3_days
-        is_active := true
-        h4_line := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
-        if show_h4_labels
-            h4_lbl := label.new(bar_index + 1, open, lbl_text, color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny)
-            
-    else if is_active and not na(h4_line)
-        current_hour = hour(time, "America/New_York")
-        bool should_stop = false
-        
-        if stop_hour == 17
-            if current_hour >= 17 or current_hour < 6
-                should_stop := true
-        if stop_hour == 6
-            if current_hour >= 6 and current_hour < 17
-                should_stop := true
-                
-        if should_stop
-            is_active := false 
-        else
-            line.set_x2(h4_line, bar_index + 1)
-            if show_h4_labels
-                label.set_x(h4_lbl, bar_index + 1)
-                
-    int(na)
+// Tracking Objects with Timestamps for Clean Removal
+type DrawingObj
+    box b_obj
+    line l_obj
+    int time_created
+
+var DrawingObj[] kz_drawings    = array.new<DrawingObj>()
+var DrawingObj[] range_drawings = array.new<DrawingObj>()
 
 // ==========================================
-// 6. KILLZONE BOX & LABEL CALCULATIONS
+// 7. KILLZONE BOX & LABEL CALCULATIONS
 // ==========================================
 var float top_bottom = 0
 var color kz_color   = na
 var bool in_kz       = na
 var string kz_text   = na
 
-if timeframe.in_seconds() < timeframe.in_seconds("60")
+if tf_is_valid
+    bool in_nyam_now = show_nyam_kz and not na(time(timeframe.period, nyam_time_inp, timezone = "America/New_York"))
+    bool end_nyam_trigger = in_nyam_now[1] and not in_nyam_now
+
+    // When NY AM closes, delete any drawings created more than 48 hours ago
+    if end_nyam_trigger
+        int purge_threshold = time - 172800000
+        
+        if array.size(kz_drawings) > 0
+            for i = array.size(kz_drawings) - 1 to 0
+                DrawingObj item = array.get(kz_drawings, i)
+                if item.time_created < purge_threshold
+                    if not na(item.b_obj)
+                        box.delete(item.b_obj)
+                    if not na(item.l_obj)
+                        line.delete(item.l_obj)
+                    array.remove(kz_drawings, i)
+
+        if array.size(range_drawings) > 0
+            for i = array.size(range_drawings) - 1 to 0
+                DrawingObj item = array.get(range_drawings, i)
+                if item.time_created < purge_threshold
+                    if not na(item.b_obj)
+                        box.delete(item.b_obj)
+                    if not na(item.l_obj)
+                        line.delete(item.l_obj)
+                    array.remove(range_drawings, i)
+
     if kz_filter
         if show_asia_kz and not na(time(timeframe.period, asia_time_inp, timezone = "America/New_York"))
             in_kz := true
@@ -160,7 +199,7 @@ if timeframe.in_seconds() < timeframe.in_seconds("60")
             in_kz := true
             kz_color := lokz_color
             kz_text := "lokz"
-        else if show_nyam_kz and not na(time(timeframe.period, nyam_time_inp, timezone = "America/New_York"))
+        else if in_nyam_now
             in_kz := true
             kz_color := nyam_color
             kz_text := "ny-am"
@@ -177,375 +216,556 @@ if timeframe.in_seconds() < timeframe.in_seconds("60")
     else
         in_kz := false
 
-    var box kz_box = na
-    var line kz_start_line = na
-    var line kz_end_line = na
+    var box curr_kz_box = na
+    var line curr_kz_start_line = na
+    var line curr_kz_end_line = na
 
     if kz_style == "Label"
         if in_kz and not in_kz[1]
             color_line = color.new(kz_color, kz_line_transp)
-            kz_box := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = kz_color, text = kz_text, text_color = kz_text_color, text_size = kz_text_size)
-            float box_y = vert_line_origin == "Top" ? box.get_top(kz_box) : box.get_bottom(kz_box)
-            kz_start_line := line.new(bar_index, high, bar_index, box_y, color = color_line, style = vert_line_style)
+            curr_kz_box := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = kz_color, text = kz_text, text_color = kz_text_color, text_size = kz_text_size)
+            float box_y = vert_line_origin == "Top" ? box.get_top(curr_kz_box) : box.get_bottom(curr_kz_box)
+            curr_kz_start_line := line.new(bar_index, high, bar_index, box_y, color = color_line, style = vert_line_style)
+            
+            array.push(kz_drawings, DrawingObj.new(curr_kz_box, na, time))
+            array.push(kz_drawings, DrawingObj.new(na, curr_kz_start_line, time))
             top_bottom := 0
+
         if in_kz[1]
-            box.set_right(kz_box, bar_index)
-            if high > box.get_bottom(kz_box)
-                box.set_bottom(kz_box, 1.0010 * high)
-                box.set_top(kz_box, 1.0015 * high)
-                float box_y = vert_line_origin == "Top" ? box.get_top(kz_box) : box.get_bottom(kz_box)
-                line.set_y2(kz_start_line, box_y)
+            box.set_right(curr_kz_box, bar_index)
+            if high > box.get_bottom(curr_kz_box)
+                box.set_bottom(curr_kz_box, 1.0010 * high)
+                box.set_top(curr_kz_box, 1.0015 * high)
+                float box_y = vert_line_origin == "Top" ? box.get_top(curr_kz_box) : box.get_bottom(curr_kz_box)
+                line.set_y2(curr_kz_start_line, box_y)
+
         if in_kz[1] and not in_kz
             color_line = color.new(kz_color, kz_line_transp)
-            float box_y = vert_line_origin == "Top" ? box.get_top(kz_box) : box.get_bottom(kz_box)
-            kz_end_line := line.new(bar_index, high, bar_index, box_y, color = color_line, style = vert_line_style)
+            float box_y = vert_line_origin == "Top" ? box.get_top(curr_kz_box) : box.get_bottom(curr_kz_box)
+            curr_kz_end_line := line.new(bar_index, high, bar_index, box_y, color = color_line, style = vert_line_style)
+            array.push(kz_drawings, DrawingObj.new(na, curr_kz_end_line, time))
+
     else if kz_style == "Top"
         top_bottom := 1
     else if kz_style == "Bottom"
         top_bottom := 2
 
+// ==========================================
+// 8. RANGE BOXES & EXTENSIONS
+// ==========================================
+if tf_is_valid
+    // --- ASIA ---
+    var box asia_b = na
+    var line asia_h = na, var line asia_l = na
+    var bool asia_draw_h = false, var bool asia_draw_l = false
+
+    bool in_asia = not na(time(timeframe.period, asia_time_inp, timezone="America/New_York"))
+    bool new_asia = in_asia and not in_asia[1]
+    bool end_asia = in_asia[1] and not in_asia
+
+    if new_asia and show_asia_box
+        if range_type == "Wicks"
+            asia_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = asia_color)
+        else if range_type == "Bodies"
+            asia_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = asia_color)
+        array.push(range_drawings, DrawingObj.new(asia_b, na, time))
+
+    if in_asia and show_asia_box and not na(asia_b)
+        box.set_right(asia_b, bar_index + 1)
+        if range_type == "Wicks"
+            if high > box.get_top(asia_b)
+                box.set_top(asia_b, high)
+            if low < box.get_bottom(asia_b)
+                box.set_bottom(asia_b, low)
+        else if range_type == "Bodies"
+            if math.max(open, close) > box.get_top(asia_b)
+                box.set_top(asia_b, math.max(open, close))
+            if math.min(open, close) < box.get_bottom(asia_b)
+                box.set_bottom(asia_b, math.min(open, close))
+
+    if end_asia and show_asia_box and not na(asia_b)
+        asia_draw_h := true
+        asia_h := line.new(box.get_left(asia_b), box.get_top(asia_b), bar_index, box.get_top(asia_b), color = asia_color)
+        asia_draw_l := true
+        asia_l := line.new(box.get_left(asia_b), box.get_bottom(asia_b), bar_index, box.get_bottom(asia_b), color = asia_color)
+        array.push(range_drawings, DrawingObj.new(na, asia_h, time))
+        array.push(range_drawings, DrawingObj.new(na, asia_l, time))
+        
+        if pipsFilter and ((box.get_top(asia_b) - box.get_bottom(asia_b)) * 10000 > maxPips)
+            box.delete(asia_b), line.delete(asia_h), line.delete(asia_l)
+            asia_draw_h := false, asia_draw_l := false
+            
+        if not ext_asia_line
+            line.delete(asia_h), line.delete(asia_l)
+            asia_draw_h := false, asia_draw_l := false
+
+    if asia_draw_h and not na(asia_h)
+        line.set_x2(asia_h, bar_index)
+        if high > line.get_y1(asia_h)
+            asia_draw_h := false 
+
+    if asia_draw_l and not na(asia_l)
+        line.set_x2(asia_l, bar_index)
+        if low < line.get_y1(asia_l)
+            asia_draw_l := false
+
+    // --- LONDON (LOKZ) ---
+    var box lokz_b = na
+    var line lokz_h = na, var line lokz_l = na
+    var bool lokz_draw_h = false, var bool lokz_draw_l = false
+
+    bool in_lokz = not na(time(timeframe.period, lokz_time_inp, timezone="America/New_York"))
+    bool new_lokz = in_lokz and not in_lokz[1]
+    bool end_lokz = in_lokz[1] and not in_lokz
+
+    if new_lokz and show_lokz_box
+        if range_type == "Wicks"
+            lokz_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = lokz_color)
+        else if range_type == "Bodies"
+            lokz_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = lokz_color)
+        array.push(range_drawings, DrawingObj.new(lokz_b, na, time))
+
+    if in_lokz and show_lokz_box and not na(lokz_b)
+        box.set_right(lokz_b, bar_index + 1)
+        if range_type == "Wicks"
+            if high > box.get_top(lokz_b)
+                box.set_top(lokz_b, high)
+            if low < box.get_bottom(lokz_b)
+                box.set_bottom(lokz_b, low)
+        else if range_type == "Bodies"
+            if math.max(open, close) > box.get_top(lokz_b)
+                box.set_top(lokz_b, math.max(open, close))
+            if math.min(open, close) < box.get_bottom(lokz_b)
+                box.set_bottom(lokz_b, math.min(open, close))
+
+    if end_lokz and show_lokz_box and not na(lokz_b)
+        lokz_draw_h := true
+        lokz_h := line.new(box.get_left(lokz_b), box.get_top(lokz_b), bar_index, box.get_top(lokz_b), color = lokz_color)
+        lokz_draw_l := true
+        lokz_l := line.new(box.get_left(lokz_b), box.get_bottom(lokz_b), bar_index, box.get_bottom(lokz_b), color = lokz_color)
+        array.push(range_drawings, DrawingObj.new(na, lokz_h, time))
+        array.push(range_drawings, DrawingObj.new(na, lokz_l, time))
+        
+        if pipsFilter and ((box.get_top(lokz_b) - box.get_bottom(lokz_b)) * 10000 > maxPips)
+            box.delete(lokz_b), line.delete(lokz_h), line.delete(lokz_l)
+            lokz_draw_h := false, lokz_draw_l := false
+            
+        if not ext_lokz_line
+            line.delete(lokz_h), line.delete(lokz_l)
+            lokz_draw_h := false, lokz_draw_l := false
+
+    if lokz_draw_h and not na(lokz_h)
+        line.set_x2(lokz_h, bar_index)
+        if high > line.get_y1(lokz_h)
+            lokz_draw_h := false
+
+    if lokz_draw_l and not na(lokz_l)
+        line.set_x2(lokz_l, bar_index)
+        if low < line.get_y1(lokz_l)
+            lokz_draw_l := false
+
+    // --- NY AM ---
+    var box nyam_b = na
+    var line nyam_h = na, var line nyam_l = na
+    var bool nyam_draw_h = false, var bool nyam_draw_l = false
+
+    bool in_nyam = not na(time(timeframe.period, nyam_time_inp, timezone="America/New_York"))
+    bool new_nyam = in_nyam and not in_nyam[1]
+    bool end_nyam = in_nyam[1] and not in_nyam
+
+    if new_nyam and show_nyam_box
+        if range_type == "Wicks"
+            nyam_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nyam_color)
+        else if range_type == "Bodies"
+            nyam_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nyam_color)
+        array.push(range_drawings, DrawingObj.new(nyam_b, na, time))
+
+    if in_nyam and show_nyam_box and not na(nyam_b)
+        box.set_right(nyam_b, bar_index + 1)
+        if range_type == "Wicks"
+            if high > box.get_top(nyam_b)
+                box.set_top(nyam_b, high)
+            if low < box.get_bottom(nyam_b)
+                box.set_bottom(nyam_b, low)
+        else if range_type == "Bodies"
+            if math.max(open, close) > box.get_top(nyam_b)
+                box.set_top(nyam_b, math.max(open, close))
+            if math.min(open, close) < box.get_bottom(nyam_b)
+                box.set_bottom(nyam_b, math.min(open, close))
+
+    if end_nyam and show_nyam_box and not na(nyam_b)
+        nyam_draw_h := true
+        nyam_h := line.new(box.get_left(nyam_b), box.get_top(nyam_b), bar_index, box.get_top(nyam_b), color = nyam_color)
+        nyam_draw_l := true
+        nyam_l := line.new(box.get_left(nyam_b), box.get_bottom(nyam_b), bar_index, box.get_bottom(nyam_b), color = nyam_color)
+        array.push(range_drawings, DrawingObj.new(na, nyam_h, time))
+        array.push(range_drawings, DrawingObj.new(na, nyam_l, time))
+        
+        if pipsFilter and ((box.get_top(nyam_b) - box.get_bottom(nyam_b)) * 10000 > maxPips)
+            box.delete(nyam_b), line.delete(nyam_h), line.delete(nyam_l)
+            nyam_draw_h := false, nyam_draw_l := false
+            
+        if not ext_nyam_line
+            line.delete(nyam_h), line.delete(nyam_l)
+            nyam_draw_h := false, nyam_draw_l := false
+
+    if nyam_draw_h and not na(nyam_h)
+        line.set_x2(nyam_h, bar_index)
+        if high > line.get_y1(nyam_h)
+            nyam_draw_h := false
+
+    if nyam_draw_l and not na(nyam_l)
+        line.set_x2(nyam_l, bar_index)
+        if low < line.get_y1(nyam_l)
+            nyam_draw_l := false
+
+    // --- NY LUNCH ---
+    var box nyl_b = na
+    var line nyl_h = na, var line nyl_l = na
+    var bool nyl_draw_h = false, var bool nyl_draw_l = false
+
+    bool in_nyl = not na(time(timeframe.period, nylunch_time_inp, timezone="America/New_York"))
+    bool new_nyl = in_nyl and not in_nyl[1]
+    bool end_nyl = in_nyl[1] and not in_nyl
+
+    if new_nyl and show_nyl_box
+        if range_type == "Wicks"
+            nyl_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nylunch_color)
+        else if range_type == "Bodies"
+            nyl_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nylunch_color)
+        array.push(range_drawings, DrawingObj.new(nyl_b, na, time))
+
+    if in_nyl and show_nyl_box and not na(nyl_b)
+        box.set_right(nyl_b, bar_index + 1)
+        if range_type == "Wicks"
+            if high > box.get_top(nyl_b)
+                box.set_top(nyl_b, high)
+            if low < box.get_bottom(nyl_b)
+                box.set_bottom(nyl_b, low)
+        else if range_type == "Bodies"
+            if math.max(open, close) > box.get_top(nyl_b)
+                box.set_top(nyl_b, math.max(open, close))
+            if math.min(open, close) < box.get_bottom(nyl_b)
+                box.set_bottom(nyl_b, math.min(open, close))
+
+    if end_nyl and show_nyl_box and not na(nyl_b)
+        nyl_draw_h := true
+        nyl_h := line.new(box.get_left(nyl_b), box.get_top(nyl_b), bar_index, box.get_top(nyl_b), color = nylunch_color)
+        nyl_draw_l := true
+        nyl_l := line.new(box.get_left(nyl_b), box.get_bottom(nyl_b), bar_index, box.get_bottom(nyl_b), color = nylunch_color)
+        array.push(range_drawings, DrawingObj.new(na, nyl_h, time))
+        array.push(range_drawings, DrawingObj.new(na, nyl_l, time))
+        
+        if pipsFilter and ((box.get_top(nyl_b) - box.get_bottom(nyl_b)) * 10000 > maxPips)
+            box.delete(nyl_b), line.delete(nyl_h), line.delete(nyl_l)
+            nyl_draw_h := false, nyl_draw_l := false
+            
+        if not ext_nyl_line
+            line.delete(nyl_h), line.delete(nyl_l)
+            nyl_draw_h := false, nyl_draw_l := false
+
+    if nyl_draw_h and not na(nyl_h)
+        line.set_x2(nyl_h, bar_index)
+        if high > line.get_y1(nyl_h)
+            nyl_draw_h := false
+
+    if nyl_draw_l and not na(nyl_l)
+        line.set_x2(nyl_l, bar_index)
+        if low < line.get_y1(nyl_l)
+            nyl_draw_l := false
+
+    // --- NY PM ---
+    var box nypm_b = na
+    var line nypm_h = na, var line nypm_l = na
+    var bool nypm_draw_h = false, var bool nypm_draw_l = false
+
+    bool in_nypm = not na(time(timeframe.period, nypm_time_inp, timezone="America/New_York"))
+    bool new_nypm = in_nypm and not in_nypm[1]
+    bool end_nypm = in_nypm[1] and not in_nypm
+
+    if new_nypm and show_nypm_box
+        if range_type == "Wicks"
+            nypm_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nypm_color)
+        else if range_type == "Bodies"
+            nypm_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nypm_color)
+        array.push(range_drawings, DrawingObj.new(nypm_b, na, time))
+
+    if in_nypm and show_nypm_box and not na(nypm_b)
+        box.set_right(nypm_b, bar_index + 1)
+        if range_type == "Wicks"
+            if high > box.get_top(nypm_b)
+                box.set_top(nypm_b, high)
+            if low < box.get_bottom(nypm_b)
+                box.set_bottom(nypm_b, low)
+        else if range_type == "Bodies"
+            if math.max(open, close) > box.get_top(nypm_b)
+                box.set_top(nypm_b, math.max(open, close))
+            if math.min(open, close) < box.get_bottom(nypm_b)
+                box.set_bottom(nypm_b, math.min(open, close))
+
+    if end_nypm and show_nypm_box and not na(nypm_b)
+        nypm_draw_h := true
+        nypm_h := line.new(box.get_left(nypm_b), box.get_top(nypm_b), bar_index, box.get_top(nypm_b), color = nypm_color)
+        nypm_draw_l := true
+        nypm_l := line.new(box.get_left(nypm_b), box.get_bottom(nypm_b), bar_index, box.get_bottom(nypm_b), color = nypm_color)
+        array.push(range_drawings, DrawingObj.new(na, nypm_h, time))
+        array.push(range_drawings, DrawingObj.new(na, nypm_l, time))
+        
+        if pipsFilter and ((box.get_top(nypm_b) - box.get_bottom(nypm_b)) * 10000 > maxPips)
+            box.delete(nypm_b), line.delete(nypm_h), line.delete(nypm_l)
+            nypm_draw_h := false, nypm_draw_l := false
+            
+        if not ext_nypm_line
+            line.delete(nypm_h), line.delete(nypm_l)
+            nypm_draw_h := false, nypm_draw_l := false
+
+    if nypm_draw_h and not na(nypm_h)
+        line.set_x2(nypm_h, bar_index)
+        if high > line.get_y1(nypm_h)
+            nypm_draw_h := false
+
+    if nypm_draw_l and not na(nypm_l)
+        line.set_x2(nypm_l, bar_index)
+        if low < line.get_y1(nypm_l)
+            nypm_draw_l := false
 
 // ==========================================
-// 7. RANGE BOXES & EXTENSIONS (ALL SESSIONS)
+// 9. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
 // ==========================================
+var line[] tdo_lines = array.new_line()
+var label[] tdo_lbls  = array.new_label()
 
-// --- ASIA ---
-var box asia_b = na
-var line asia_h = na
-var line asia_l = na
-var bool asia_draw_h = false
-var bool asia_draw_l = false
-
-bool in_asia = not na(time(timeframe.period, asia_time_inp, timezone="America/New_York"))
-bool new_asia = in_asia and not in_asia[1]
-bool end_asia = in_asia[1] and not in_asia
-
-if new_asia and show_asia_box
-    if range_type == "Wicks"
-        asia_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = asia_color)
-    else if range_type == "Bodies"
-        asia_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = asia_color)
-
-if in_asia and show_asia_box and not na(asia_b)
-    box.set_right(asia_b, bar_index + 1)
-    if range_type == "Wicks"
-        if high > box.get_top(asia_b)
-            box.set_top(asia_b, high)
-        if low < box.get_bottom(asia_b)
-            box.set_bottom(asia_b, low)
-    else if range_type == "Bodies"
-        if math.max(open, close) > box.get_top(asia_b)
-            box.set_top(asia_b, math.max(open, close))
-        if math.min(open, close) < box.get_bottom(asia_b)
-            box.set_bottom(asia_b, math.min(open, close))
-
-if end_asia and show_asia_box and not na(asia_b)
-    asia_draw_h := true
-    asia_h := line.new(box.get_left(asia_b), box.get_top(asia_b), bar_index, box.get_top(asia_b), color = asia_color)
-    asia_draw_l := true
-    asia_l := line.new(box.get_left(asia_b), box.get_bottom(asia_b), bar_index, box.get_bottom(asia_b), color = asia_color)
-    
-    if pipsFilter and ((box.get_top(asia_b) - box.get_bottom(asia_b)) * 10000 > maxPips)
-        box.delete(asia_b)
-        line.delete(asia_h)
-        line.delete(asia_l)
-        asia_draw_h := false
-        asia_draw_l := false
-        
-    if not ext_asia_line
-        line.delete(asia_h)
-        line.delete(asia_l)
-        asia_draw_h := false
-        asia_draw_l := false
-
-if asia_draw_h and not na(asia_h)
-    line.set_x2(asia_h, bar_index)
-    if high > line.get_y1(asia_h)
-        asia_draw_h := false 
-
-if asia_draw_l and not na(asia_l)
-    line.set_x2(asia_l, bar_index)
-    if low < line.get_y1(asia_l)
-        asia_draw_l := false
-
-
-// --- LONDON (LOKZ) ---
-var box lokz_b = na
-var line lokz_h = na
-var line lokz_l = na
-var bool lokz_draw_h = false
-var bool lokz_draw_l = false
-
-bool in_lokz = not na(time(timeframe.period, lokz_time_inp, timezone="America/New_York"))
-bool new_lokz = in_lokz and not in_lokz[1]
-bool end_lokz = in_lokz[1] and not in_lokz
-
-if new_lokz and show_lokz_box
-    if range_type == "Wicks"
-        lokz_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = lokz_color)
-    else if range_type == "Bodies"
-        lokz_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = lokz_color)
-
-if in_lokz and show_lokz_box and not na(lokz_b)
-    box.set_right(lokz_b, bar_index + 1)
-    if range_type == "Wicks"
-        if high > box.get_top(lokz_b)
-            box.set_top(lokz_b, high)
-        if low < box.get_bottom(lokz_b)
-            box.set_bottom(lokz_b, low)
-    else if range_type == "Bodies"
-        if math.max(open, close) > box.get_top(lokz_b)
-            box.set_top(lokz_b, math.max(open, close))
-        if math.min(open, close) < box.get_bottom(lokz_b)
-            box.set_bottom(lokz_b, math.min(open, close))
-
-if end_lokz and show_lokz_box and not na(lokz_b)
-    lokz_draw_h := true
-    lokz_h := line.new(box.get_left(lokz_b), box.get_top(lokz_b), bar_index, box.get_top(lokz_b), color = lokz_color)
-    lokz_draw_l := true
-    lokz_l := line.new(box.get_left(lokz_b), box.get_bottom(lokz_b), bar_index, box.get_bottom(lokz_b), color = lokz_color)
-    
-    if pipsFilter and ((box.get_top(lokz_b) - box.get_bottom(lokz_b)) * 10000 > maxPips)
-        box.delete(lokz_b)
-        line.delete(lokz_h)
-        line.delete(lokz_l)
-        lokz_draw_h := false
-        lokz_draw_l := false
-        
-    if not ext_lokz_line
-        line.delete(lokz_h)
-        line.delete(lokz_l)
-        lokz_draw_h := false
-        lokz_draw_l := false
-
-if lokz_draw_h and not na(lokz_h)
-    line.set_x2(lokz_h, bar_index)
-    if high > line.get_y1(lokz_h)
-        lokz_draw_h := false
-
-if lokz_draw_l and not na(lokz_l)
-    line.set_x2(lokz_l, bar_index)
-    if low < line.get_y1(lokz_l)
-        lokz_draw_l := false
-
-
-// --- NY AM ---
-var box nyam_b = na
-var line nyam_h = na
-var line nyam_l = na
-var bool nyam_draw_h = false
-var bool nyam_draw_l = false
-
-bool in_nyam = not na(time(timeframe.period, nyam_time_inp, timezone="America/New_York"))
-bool new_nyam = in_nyam and not in_nyam[1]
-bool end_nyam = in_nyam[1] and not in_nyam
-
-if new_nyam and show_nyam_box
-    if range_type == "Wicks"
-        nyam_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nyam_color)
-    else if range_type == "Bodies"
-        nyam_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nyam_color)
-
-if in_nyam and show_nyam_box and not na(nyam_b)
-    box.set_right(nyam_b, bar_index + 1)
-    if range_type == "Wicks"
-        if high > box.get_top(nyam_b)
-            box.set_top(nyam_b, high)
-        if low < box.get_bottom(nyam_b)
-            box.set_bottom(nyam_b, low)
-    else if range_type == "Bodies"
-        if math.max(open, close) > box.get_top(nyam_b)
-            box.set_top(nyam_b, math.max(open, close))
-        if math.min(open, close) < box.get_bottom(nyam_b)
-            box.set_bottom(nyam_b, math.min(open, close))
-
-if end_nyam and show_nyam_box and not na(nyam_b)
-    nyam_draw_h := true
-    nyam_h := line.new(box.get_left(nyam_b), box.get_top(nyam_b), bar_index, box.get_top(nyam_b), color = nyam_color)
-    nyam_draw_l := true
-    nyam_l := line.new(box.get_left(nyam_b), box.get_bottom(nyam_b), bar_index, box.get_bottom(nyam_b), color = nyam_color)
-    
-    if pipsFilter and ((box.get_top(nyam_b) - box.get_bottom(nyam_b)) * 10000 > maxPips)
-        box.delete(nyam_b)
-        line.delete(nyam_h)
-        line.delete(nyam_l)
-        nyam_draw_h := false
-        nyam_draw_l := false
-        
-    if not ext_nyam_line
-        line.delete(nyam_h)
-        line.delete(nyam_l)
-        nyam_draw_h := false
-        nyam_draw_l := false
-
-if nyam_draw_h and not na(nyam_h)
-    line.set_x2(nyam_h, bar_index)
-    if high > line.get_y1(nyam_h)
-        nyam_draw_h := false
-
-if nyam_draw_l and not na(nyam_l)
-    line.set_x2(nyam_l, bar_index)
-    if low < line.get_y1(nyam_l)
-        nyam_draw_l := false
-
-
-// --- NY LUNCH ---
-var box nyl_b = na
-var line nyl_h = na
-var line nyl_l = na
-var bool nyl_draw_h = false
-var bool nyl_draw_l = false
-
-bool in_nyl = not na(time(timeframe.period, nylunch_time_inp, timezone="America/New_York"))
-bool new_nyl = in_nyl and not in_nyl[1]
-bool end_nyl = in_nyl[1] and not in_nyl
-
-if new_nyl and show_nyl_box
-    if range_type == "Wicks"
-        nyl_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nylunch_color)
-    else if range_type == "Bodies"
-        nyl_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nylunch_color)
-
-if in_nyl and show_nyl_box and not na(nyl_b)
-    box.set_right(nyl_b, bar_index + 1)
-    if range_type == "Wicks"
-        if high > box.get_top(nyl_b)
-            box.set_top(nyl_b, high)
-        if low < box.get_bottom(nyl_b)
-            box.set_bottom(nyl_b, low)
-    else if range_type == "Bodies"
-        if math.max(open, close) > box.get_top(nyl_b)
-            box.set_top(nyl_b, math.max(open, close))
-        if math.min(open, close) < box.get_bottom(nyl_b)
-            box.set_bottom(nyl_b, math.min(open, close))
-
-if end_nyl and show_nyl_box and not na(nyl_b)
-    nyl_draw_h := true
-    nyl_h := line.new(box.get_left(nyl_b), box.get_top(nyl_b), bar_index, box.get_top(nyl_b), color = nylunch_color)
-    nyl_draw_l := true
-    nyl_l := line.new(box.get_left(nyl_b), box.get_bottom(nyl_b), bar_index, box.get_bottom(nyl_b), color = nylunch_color)
-    
-    if pipsFilter and ((box.get_top(nyl_b) - box.get_bottom(nyl_b)) * 10000 > maxPips)
-        box.delete(nyl_b)
-        line.delete(nyl_h)
-        line.delete(nyl_l)
-        nyl_draw_h := false
-        nyl_draw_l := false
-        
-    if not ext_nyl_line
-        line.delete(nyl_h)
-        line.delete(nyl_l)
-        nyl_draw_h := false
-        nyl_draw_l := false
-
-if nyl_draw_h and not na(nyl_h)
-    line.set_x2(nyl_h, bar_index)
-    if high > line.get_y1(nyl_h)
-        nyl_draw_h := false
-
-if nyl_draw_l and not na(nyl_l)
-    line.set_x2(nyl_l, bar_index)
-    if low < line.get_y1(nyl_l)
-        nyl_draw_l := false
-
-
-// --- NY PM ---
-var box nypm_b = na
-var line nypm_h = na
-var line nypm_l = na
-var bool nypm_draw_h = false
-var bool nypm_draw_l = false
-
-bool in_nypm = not na(time(timeframe.period, nypm_time_inp, timezone="America/New_York"))
-bool new_nypm = in_nypm and not in_nypm[1]
-bool end_nypm = in_nypm[1] and not in_nypm
-
-if new_nypm and show_nypm_box
-    if range_type == "Wicks"
-        nypm_b := box.new(bar_index, high, bar_index, low, border_color = color.new(color.white, 100), bgcolor = nypm_color)
-    else if range_type == "Bodies"
-        nypm_b := box.new(bar_index, open, bar_index, open, border_color = color.new(color.white, 100), bgcolor = nypm_color)
-
-if in_nypm and show_nypm_box and not na(nypm_b)
-    box.set_right(nypm_b, bar_index + 1)
-    if range_type == "Wicks"
-        if high > box.get_top(nypm_b)
-            box.set_top(nypm_b, high)
-        if low < box.get_bottom(nypm_b)
-            box.set_bottom(nypm_b, low)
-    else if range_type == "Bodies"
-        if math.max(open, close) > box.get_top(nypm_b)
-            box.set_top(nypm_b, math.max(open, close))
-        if math.min(open, close) < box.get_bottom(nypm_b)
-            box.set_bottom(nypm_b, math.min(open, close))
-
-if end_nypm and show_nypm_box and not na(nypm_b)
-    nypm_draw_h := true
-    nypm_h := line.new(box.get_left(nypm_b), box.get_top(nypm_b), bar_index, box.get_top(nypm_b), color = nypm_color)
-    nypm_draw_l := true
-    nypm_l := line.new(box.get_left(nypm_b), box.get_bottom(nypm_b), bar_index, box.get_bottom(nypm_b), color = nypm_color)
-    
-    if pipsFilter and ((box.get_top(nypm_b) - box.get_bottom(nypm_b)) * 10000 > maxPips)
-        box.delete(nypm_b)
-        line.delete(nypm_h)
-        line.delete(nypm_l)
-        nypm_draw_h := false
-        nypm_draw_l := false
-        
-    if not ext_nypm_line
-        line.delete(nypm_h)
-        line.delete(nypm_l)
-        nypm_draw_h := false
-        nypm_draw_l := false
-
-if nypm_draw_h and not na(nypm_h)
-    line.set_x2(nypm_h, bar_index)
-    if high > line.get_y1(nypm_h)
-        nypm_draw_h := false
-
-if nypm_draw_l and not na(nypm_l)
-    line.set_x2(nypm_l, bar_index)
-    if low < line.get_y1(nypm_l)
-        nypm_draw_l := false
-
-
-// ==========================================
-// 8. TRUE DAY OPEN (MIDNIGHT LINE)
-// ==========================================
-var line mno_line = na
-var label mno_lbl  = na
-
-// STRICT MIDNIGHT TRIGGER (12:00 AM NY TIME)
-bool is_midnight_sess = not na(time(timeframe.period, session = "0000-0001", timezone = "America/New_York"))
+bool is_midnight_sess = tf_is_valid and not na(time(timeframe.period, session = "0000-0001", timezone = "America/New_York"))
 bool trigger_midnight = is_midnight_sess and not is_midnight_sess[1]
 
-// 24H TRUE DAY OPEN LOGIC
-if trigger_midnight
-    if show_mnoline
-        mno_line := line.new(bar_index, open, bar_index + 1, open, color = mno_color, style = mno_style, width = mno_width)
-        mno_lbl  := label.new(bar_index + 1, open, "True Day Open", color = color.new(color.white, 100), textcolor = mno_color, style = label.style_label_left, size = size.small)
-else if not na(mno_line)
-    line.set_x2(mno_line, bar_index + 1)
-    label.set_x(mno_lbl, bar_index + 1)
+if tf_is_valid
+    if trigger_midnight and show_mnoline
+        line new_mno = line.new(bar_index, open, bar_index + 1, open, color = mno_color, style = mno_style, width = mno_width)
+        label new_lbl = label.new(bar_index + 1, open, "True Day Open", color = color.new(color.white, 100), textcolor = mno_color, style = label.style_label_left, size = size.small)
+        
+        array.push(tdo_lines, new_mno)
+        array.push(tdo_lbls, new_lbl)
+        
+        if array.size(tdo_lines) > 2
+            line.delete(array.shift(tdo_lines))
+            label.delete(array.shift(tdo_lbls))
+            
+    if array.size(tdo_lines) > 0
+        for i = 0 to array.size(tdo_lines) - 1
+            line.set_x2(array.get(tdo_lines, i), bar_index + 1)
+            label.set_x(array.get(tdo_lbls, i), bar_index + 1)
 
-// Daily Vertical Divider
-var line daily_open = na
-if trigger_midnight and show_daily
-    daily_open := line.new(bar_index, bar_index, bar_index, bar_index + 1, extend = extend.both, color = color.new(color.gray, 85))
+    var line daily_open = na
+    if trigger_midnight and show_daily
+        daily_open := line.new(bar_index, bar_index, bar_index, bar_index + 1, extend = extend.both, color = color.new(color.gray, 85))
+
+// 9:30 AM VERTICAL LINE WITH WEEKLY RESET
+var line[] week_930_lines = array.new_line()
+bool is_new_week = ta.change(time("W")) != 0
+
+if tf_is_valid and is_new_week
+    if array.size(week_930_lines) > 0
+        for i = 0 to array.size(week_930_lines) - 1
+            line.delete(array.get(week_930_lines, i))
+        array.clear(week_930_lines)
+
+bool is_930_sess = tf_is_valid and not na(time(timeframe.period, session = "0930-0931", timezone = "America/New_York"))
+bool trigger_930 = is_930_sess and not is_930_sess[1]
+
+if tf_is_valid and trigger_930 and show_930_line
+    line l_930 = line.new(bar_index, bar_index, bar_index, bar_index + 1, extend = extend.both, color = line_930_color, style = line.style_dashed)
+    array.push(week_930_lines, l_930)
 
 // ==========================================
-// 9. 4-HOUR OPENING PRICE LINES
+// 10. HTF HIGH / LOW (PDH, PDL, PWH, PWL)
 // ==========================================
+[pd_high, pd_low] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
+[pw_high, pw_low] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 
-// NIGHTLY SESSIONS (Stop printing exactly at Hour 6 / 6:00 AM)
-f_check_h4("1800-1801", 6, show_h4_1800, "6:00 PM 4H Open")
-f_check_h4("2200-2201", 6, show_h4_2200, "10:00 PM 4H Open")
-f_check_h4("0200-0201", 6, show_h4_0200, "2:00 AM 4H Open")
+var line pdh_l = na, var label pdh_lbl = na, var bool pdh_act = false
+var line pdl_l = na, var label pdl_lbl = na, var bool pdl_act = false
+var line pwh_l = na, var label pwh_lbl = na, var bool pwh_act = false
+var line pwl_l = na, var label pwl_lbl = na, var bool pwl_act = false
 
-// AM SESSIONS (Stop printing exactly at Hour 17 / 5:00 PM)
-f_check_h4("0600-0601", 17, show_h4_0600, "6:00 AM 4H Open")
-f_check_h4("1000-1001", 17, show_h4_1000, "10:00 AM 4H Open")
-f_check_h4("1400-1401", 17, show_h4_1400, "2:00 PM 4H Open")
+if tf_is_valid
+    if trigger_midnight
+        if show_pdh
+            line.delete(pdh_l), label.delete(pdh_lbl)
+            pdh_l   := line.new(bar_index, pd_high, bar_index + 1, pd_high, color = color.new(pdh_color, hl_line_transp), style = hl_line_style, width = hl_line_width)
+            pdh_lbl := show_hl_labels ? label.new(bar_index + 1, pd_high, "PDH", color = color.new(color.white, 100), textcolor = pdh_color, style = label.style_label_left, size = size.tiny) : na
+            pdh_act := true
 
-plotchar(top_bottom == 1 and in_kz and timeframe.in_seconds() < timeframe.in_seconds("61"), "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
-plotchar(top_bottom == 2 and in_kz and timeframe.in_seconds() < timeframe.in_seconds("61"), "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
+        if show_pdl
+            line.delete(pdl_l), label.delete(pdl_lbl)
+            pdl_l   := line.new(bar_index, pd_low, bar_index + 1, pd_low, color = color.new(pdl_color, hl_line_transp), style = hl_line_style, width = hl_line_width)
+            pdl_lbl := show_hl_labels ? label.new(bar_index + 1, pd_low, "PDL", color = color.new(color.white, 100), textcolor = pdl_color, style = label.style_label_left, size = size.tiny) : na
+            pdl_act := true
+
+    if is_new_week
+        if show_pwh
+            line.delete(pwh_l), label.delete(pwh_lbl)
+            pwh_l   := line.new(bar_index, pw_high, bar_index + 1, pw_high, color = color.new(pwh_color, hl_line_transp), style = hl_line_style, width = hl_line_width)
+            pwh_lbl := show_hl_labels ? label.new(bar_index + 1, pw_high, "PWH", color = color.new(color.white, 100), textcolor = pwh_color, style = label.style_label_left, size = size.tiny) : na
+            pwh_act := true
+
+        if show_pwl
+            line.delete(pwl_l), label.delete(pwl_lbl)
+            pwl_l   := line.new(bar_index, pw_low, bar_index + 1, pw_low, color = color.new(pwl_color, hl_line_transp), style = hl_line_style, width = hl_line_width)
+            pwl_lbl := show_hl_labels ? label.new(bar_index + 1, pw_low, "PWL", color = color.new(color.white, 100), textcolor = pwl_color, style = label.style_label_left, size = size.tiny) : na
+            pwl_act := true
+
+    if pdh_act and not na(pdh_l)
+        line.set_x2(pdh_l, bar_index + 1)
+        if not na(pdh_lbl)
+            label.set_x(pdh_lbl, bar_index + 1)
+        if high >= line.get_y1(pdh_l)
+            pdh_act := false
+
+    if pdl_act and not na(pdl_l)
+        line.set_x2(pdl_l, bar_index + 1)
+        if not na(pdl_lbl)
+            label.set_x(pdl_lbl, bar_index + 1)
+        if low <= line.get_y1(pdl_l)
+            pdl_act := false
+
+    if pwh_act and not na(pwh_l)
+        line.set_x2(pwh_l, bar_index + 1)
+        if not na(pwh_lbl)
+            label.set_x(pwh_lbl, bar_index + 1)
+        if high >= line.get_y1(pwh_l)
+            pwh_act := false
+
+    if pwl_act and not na(pwl_l)
+        line.set_x2(pwl_l, bar_index + 1)
+        if not na(pwl_lbl)
+            label.set_x(pwl_lbl, bar_index + 1)
+        if low <= line.get_y1(pwl_l)
+            pwl_act := false
+
+// ==========================================
+// 11. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
+// ==========================================
+var box ndog_b = na, var bool ndog_act = false
+var box nwog_b = na, var bool nwog_act = false
+
+if tf_gap_valid
+    bool trigger_day_gap = ta.change(time("D")) != 0
+    bool trigger_week_gap = ta.change(time("W")) != 0
+
+    bool nwog_printed_now = false
+    if trigger_week_gap and show_nwog
+        float prev_w_close = close[1]
+        if open != prev_w_close
+            nwog_b := box.new(bar_index - 1, math.max(open, prev_w_close), bar_index, math.min(open, prev_w_close), border_color = color.new(color.white, 100), bgcolor = color.new(nwog_color, gap_transp), text = "NWOG", text_color = gap_text_color, text_size = gap_text_size, text_valign = text.align_center, text_halign = text.align_center)
+            nwog_act := true
+            nwog_printed_now := true
+
+    if trigger_day_gap and show_ndog and not nwog_printed_now
+        float prev_close = close[1]
+        if open != prev_close
+            ndog_b := box.new(bar_index - 1, math.max(open, prev_close), bar_index, math.min(open, prev_close), border_color = color.new(color.white, 100), bgcolor = color.new(ndog_color, gap_transp), text = "NDOG", text_color = gap_text_color, text_size = gap_text_size, text_valign = text.align_center, text_halign = text.align_center)
+            ndog_act := true
+
+    // Extend NDOG box until price touches/intersects the gap range
+    if ndog_act and not na(ndog_b)
+        box.set_right(ndog_b, bar_index + 1)
+        float top_val = box.get_top(ndog_b)
+        float bot_val = box.get_bottom(ndog_b)
+        if high >= bot_val and low <= top_val
+            ndog_act := false
+
+    // Extend NWOG box until price touches/intersects the gap range
+    if nwog_act and not na(nwog_b)
+        box.set_right(nwog_b, bar_index + 1)
+        float top_val = box.get_top(nwog_b)
+        float bot_val = box.get_bottom(nwog_b)
+        if high >= bot_val and low <= top_val
+            nwog_act := false
+
+// ==========================================
+// 12. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
+// ==========================================
+var line l_h4_1800 = na, var label lbl_h4_1800 = na
+var line l_h4_2200 = na, var label lbl_h4_2200 = na
+var line l_h4_0200 = na, var label lbl_h4_0200 = na
+var line l_h4_0600 = na, var label lbl_h4_0600 = na
+var line l_h4_1000 = na, var label lbl_h4_1000 = na
+var line l_h4_1400 = na, var label lbl_h4_1400 = na
+
+if tf_is_valid and show_4h_opens
+    // 6:00 PM (18:00) Open -> Delete previous day's 6:00 AM (06:00)
+    bool s_1800 = not na(time(timeframe.period, session = "1800-1801", timezone = "America/New_York"))
+    if s_1800 and not s_1800[1] and show_h4_1800
+        line.delete(l_h4_0600), label.delete(lbl_h4_0600)
+        line.delete(l_h4_1800), label.delete(lbl_h4_1800)
+        l_h4_1800 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_1800 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // 10:00 PM (22:00) Open -> Delete previous day's 10:00 AM (10:00)
+    bool s_2200 = not na(time(timeframe.period, session = "2200-2201", timezone = "America/New_York"))
+    if s_2200 and not s_2200[1] and show_h4_2200
+        line.delete(l_h4_1000), label.delete(lbl_h4_1000)
+        line.delete(l_h4_2200), label.delete(lbl_h4_2200)
+        l_h4_2200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_2200 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // 2:00 AM (02:00) Open -> Delete previous day's 2:00 PM (14:00)
+    bool s_0200 = not na(time(timeframe.period, session = "0200-0201", timezone = "America/New_York"))
+    if s_0200 and not s_0200[1] and show_h4_0200
+        line.delete(l_h4_1400), label.delete(lbl_h4_1400)
+        line.delete(l_h4_0200), label.delete(lbl_h4_0200)
+        l_h4_0200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_0200 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // 6:00 AM (06:00) Open -> Delete previous day's 6:00 PM (18:00)
+    bool s_0600 = not na(time(timeframe.period, session = "0600-0601", timezone = "America/New_York"))
+    if s_0600 and not s_0600[1] and show_h4_0600
+        line.delete(l_h4_1800), label.delete(lbl_h4_1800)
+        line.delete(l_h4_0600), label.delete(lbl_h4_0600)
+        l_h4_0600 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_0600 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // 10:00 AM (10:00) Open -> Delete previous day's 10:00 PM (22:00)
+    bool s_1000 = not na(time(timeframe.period, session = "1000-1001", timezone = "America/New_York"))
+    if s_1000 and not s_1000[1] and show_h4_1000
+        line.delete(l_h4_2200), label.delete(lbl_h4_2200)
+        line.delete(l_h4_1000), label.delete(lbl_h4_1000)
+        l_h4_1000 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_1000 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // 2:00 PM (14:00) Open -> Delete previous day's 2:00 AM (02:00)
+    bool s_1400 = not na(time(timeframe.period, session = "1400-1401", timezone = "America/New_York"))
+    if s_1400 and not s_1400[1] and show_h4_1400
+        line.delete(l_h4_0200), label.delete(lbl_h4_0200)
+        line.delete(l_h4_1400), label.delete(lbl_h4_1400)
+        l_h4_1400 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        lbl_h4_1400 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+
+    // Extend Active Lines Rightward
+    if not na(l_h4_1800)
+        line.set_x2(l_h4_1800, bar_index + 1)
+        if not na(lbl_h4_1800)
+            label.set_x(lbl_h4_1800, bar_index + 1)
+    if not na(l_h4_2200)
+        line.set_x2(l_h4_2200, bar_index + 1)
+        if not na(lbl_h4_2200)
+            label.set_x(lbl_h4_2200, bar_index + 1)
+    if not na(l_h4_0200)
+        line.set_x2(l_h4_0200, bar_index + 1)
+        if not na(lbl_h4_0200)
+            label.set_x(lbl_h4_0200, bar_index + 1)
+    if not na(l_h4_0600)
+        line.set_x2(l_h4_0600, bar_index + 1)
+        if not na(lbl_h4_0600)
+            label.set_x(lbl_h4_0600, bar_index + 1)
+    if not na(l_h4_1000)
+        line.set_x2(l_h4_1000, bar_index + 1)
+        if not na(lbl_h4_1000)
+            label.set_x(lbl_h4_1000, bar_index + 1)
+    if not na(l_h4_1400)
+        line.set_x2(l_h4_1400, bar_index + 1)
+        if not na(lbl_h4_1400)
+            label.set_x(lbl_h4_1400, bar_index + 1)
+
+plotchar(tf_is_valid and top_bottom == 1 and in_kz, "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
+plotchar(tf_is_valid and top_bottom == 2 and in_kz, "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
