@@ -73,8 +73,11 @@ mno_color        = input.color(color.new(color.orange, 20), "", inline="tdo_m", 
 mno_style        = input.string(line.style_dotted, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="tdo_s", group=G_TDO)
 mno_width        = input.int(1, "Width", minval=1, maxval=5, inline="tdo_s", group=G_TDO)
 
-show_930_line    = input.bool(true, "Vertical Line at 9:30 AM (Weekly Reset)", group=G_TDO)
-line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", group=G_TDO)
+show_930_line    = input.bool(true, "Show 9:30 AM Vertical Lines", group=G_TDO)
+past_930_count   = input.int(2, "Number of Past 9:30 AM Lines", minval=0, group=G_TDO)
+line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", inline="930_s", group=G_TDO)
+line_930_style   = input.string(line.style_dashed, "Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="930_s", group=G_TDO)
+line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", group=G_TDO)
 
 // ==========================================
 // 4. HTF HIGH / LOW LEVELS (PDH/PDL & PWH/PWL)
@@ -559,22 +562,48 @@ if tf_is_valid
     if trigger_midnight and show_daily
         daily_open := line.new(bar_index, bar_index, bar_index, bar_index + 1, extend = extend.both, color = color.new(color.gray, 85))
 
-// 9:30 AM VERTICAL LINE WITH WEEKLY RESET
-var line[] week_930_lines = array.new_line()
+
 bool is_new_week = ta.change(time("W")) != 0
 
-if tf_is_valid and is_new_week
-    if array.size(week_930_lines) > 0
-        for i = 0 to array.size(week_930_lines) - 1
-            line.delete(array.get(week_930_lines, i))
-        array.clear(week_930_lines)
-
+// 9:30 AM VERTICAL LINES (PAST AND UPCOMING)
+var line[] past_930_lines = array.new_line()
 bool is_930_sess = tf_is_valid and not na(time(timeframe.period, session = "0930-0931", timezone = "America/New_York"))
 bool trigger_930 = is_930_sess and not is_930_sess[1]
 
 if tf_is_valid and trigger_930 and show_930_line
-    line l_930 = line.new(bar_index, bar_index, bar_index, bar_index + 1, extend = extend.both, color = line_930_color, style = line.style_dashed)
-    array.push(week_930_lines, l_930)
+    line l_930 = line.new(bar_index, low, bar_index, high, extend = extend.both, color = line_930_color, style = line_930_style, width = line_930_width)
+    array.push(past_930_lines, l_930)
+
+    // Limit to the user-specified number of past 9:30 AM lines
+    if array.size(past_930_lines) > past_930_count
+        line.delete(array.shift(past_930_lines))
+
+// Upcoming 9:30 AM Line (Only drawn dynamically on the last bar)
+var line upcoming_930_line = na
+if tf_is_valid and show_930_line and barstate.islast
+    int y = year(time, "America/New_York")
+    int m = month(time, "America/New_York")
+    int d = dayofmonth(time, "America/New_York")
+    int today_930 = timestamp("America/New_York", y, m, d, 9, 30)
+    
+    // Determine next 9:30 AM timestamp
+    int next_930 = time < today_930 ? today_930 : today_930 + 86400000
+    
+    // Adjust for the weekend (Friday night pushes to Monday morning)
+    int day_of_wk = dayofweek(next_930, "America/New_York")
+    if day_of_wk == 7 // Saturday
+        next_930 += 2 * 86400000
+    else if day_of_wk == 1 // Sunday
+        next_930 += 86400000
+        
+    if na(upcoming_930_line)
+        upcoming_930_line := line.new(next_930, low, next_930, high, xloc=xloc.bar_time, extend=extend.both, color=line_930_color, style=line_930_style, width=line_930_width)
+    else
+        line.set_x1(upcoming_930_line, next_930)
+        line.set_x2(upcoming_930_line, next_930)
+        line.set_color(upcoming_930_line, line_930_color)
+        line.set_style(upcoming_930_line, line_930_style)
+        line.set_width(upcoming_930_line, line_930_width)
 
 // ==========================================
 // 10. HTF HIGH / LOW (PDH, PDL, PWH, PWL)
