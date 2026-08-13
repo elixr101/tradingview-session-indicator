@@ -4,6 +4,8 @@
 
 Engineered for clean, quantitative execution on high-volatility assets like Nasdaq futures. This indicator strips away chart noise through strict memory management, displaying only what is mathematically necessary for immediate contract risk management and order flow tracking.
 
+<img width="1253" height="751" alt="image" src="https://github.com/user-attachments/assets/46587047-2241-4276-a3a2-0a676c22f6f3" />
+
 ---
 
 ### ◾ CORE ARCHITECTURE
