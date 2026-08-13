@@ -1,69 +1,43 @@
-# Killzones & Session Range Indicator (Pine Script v5)
+# ◼️ KILLZONES [v5]
 
-An all-in-one, highly customizable **ICT / Smart Money Concepts (SMC)** session, killzone, and opening price level indicator built for TradingView.
+> Precision session tracking and institutional pricing models for TradingView.
 
-Designed for intraday execution and clean chart management, this indicator automatically handles multi-session ranges, high-timeframe liquidity sweeps, 24-hour rolling 4H opening prices, and opening gaps with automatic fill-detection and historic object garbage collection.
+Engineered for clean, quantitative execution on high-volatility assets like Nasdaq futures. This indicator strips away chart noise through strict memory management, displaying only what is mathematically necessary for immediate contract risk management and order flow tracking.
 
----
-
-## ✨ Features
-
-### 🎯 Killzones & Session Ranges
-
-* **Customizable Session Windows:** Tracks Asia, London (LOKZ), New York AM (Extended 08:30–11:00 AM), NY Lunch, and NY PM sessions in NY timezone (`America/New_York`).
-* **High/Low Range Extensions:** Draws range boxes with optional horizontal extension lines off session high and low prices (supports Wick or Body calculations).
-* **Smart Garbage Collection:** Retains **2 full days** of historical session/killzone drawings, temporarily holding 3 days during day transitions until the NY AM session closes to keep your charts light and lag-free.
-
-### 📐 HTF Liquidity & Opening Levels
-
-* **Previous Day High/Low (PDH / PDL):** Extends previous daily highs/lows with right-aligned labels until price sweeps/fills them.
-* **Previous Week High/Low (PWH / PWL):** Extends previous weekly highs/lows with right-aligned labels until filled.
-* **True Day Open (Midnight):** Plots Midnight NY True Day Open horizontal lines (capped to max 2 active days).
-* **9:30 AM Equity Open Divider:** Vertical line marking the 09:30 AM NY equity open, auto-clearing at every new weekly open.
-* **Rolling 24-Hour 4-Hour Opens:** Plots 4-Hour candle opening prices (18:00, 22:00, 02:00, 06:00, 10:00, 14:00) on a **strict rolling 24-hour cycle**—deleting yesterday's corresponding 4H line as each new one prints.
-
-### 📊 Opening Gaps (NDOG & NWOG)
-
-* **New Day Opening Gap (NDOG) & New Week Opening Gap (NWOG):** Automatically draws gap boxes with centered text labels.
-* **Exclusive NWOG Priority:** NWOG automatically overrides NDOG on weekly opens to prevent overlapping boxes.
-* **Accurate Fill Engine:** Checks exact High/Low price intersections within the gap boundaries and deactivates extensions instantly upon full mitigation.
-* **Multi-Timeframe Filtering:** Restricts gap box rendering strictly to timeframes between **1 Hour (1H) and 1 Week (1W)**.
-
-### ⏱️ Automated Timeframe Deactivation
-
-* Features an intraday filter threshold ($\le$ 1 Hour / 60-min). Indicator elements automatically turn off cleanly on higher timeframe charts (4H, Daily) to prevent chart clutter.
+*(Reference `image_cda618.jpg` for the intended dark-mode visual configuration).*
 
 ---
 
-## 🛠️ Installation & Setup
+### ◾ CORE ARCHITECTURE
 
-1. Open **TradingView** and navigate to any chart.
-2. Click on the **Pine Editor** tab at the bottom of the screen.
-3. Click **New** $\rightarrow$ **Blank indicator script**.
-4. Paste the source code into the editor.
-5. Click **Save** and then click **Add to chart**.
+**Strict Memory Engine**
+Chart clutter is a liability. The custom memory engine ruthlessly purges obsolete drawings, holding a strict maximum of two historical data points per session.
 
----
+**15-Minute Forward Projection**
+A predictive visual engine. Exactly 15 minutes before an impending killzone, a localized preview (opening line and label) projects into the future on the x-axis. The moment the session executes, the preview dissolves into the live session box, and the oldest historical session is terminated to maintain the 2-session max.
 
-## ⚙️ Configuration & Settings
+**True Day Open (TDO) Sweep Protocol**
+Plots the midnight True Day Open. To prevent false signals during low-volume hours, the algorithm ignores all price action until the 8:30 AM NY equities open. Post-8:30, the line instantly terminates the exact millisecond price sweeps the open.
 
-| Input Group | Setting | Description | Default |
-| --- | --- | --- | --- |
-| **Killzone Toggles & Colors** | Master Toggle & Displays | Toggle individual sessions, box colors, and text styles | Enabled |
-| **Session Times** | NY AM Session | Extended NY AM session time | `0830-1100` |
-| **True Day Open** | Show Line / Max Days | Midnight open line style, color, and max limit | Enabled (Max 2) |
-| **HTF High/Low Levels** | PDH/PDL & PWH/PWL | Toggles, line widths, opacity, and right labels | Enabled |
-| **Opening Gaps** | NDOG / NWOG | Box colors, transparency, and text size settings | 1H–1W Timeframe |
-| **4-Hour Open Lines** | Rolling Cycle | Toggle specific 4H opening price lines | 24-Hour Cycle |
+**Gap Mechanics (NDOG & NWOG)**
+Tracks New Day and New Week Opening Gaps. Gap boxes track the exact target price of the previous close and project infinitely rightward until a future candle perfectly intersects and fills the void.
+
+**Rolling 4H Arrays**
+Maintains a rolling 24-hour cycle of 4-hour opening price lines (18:00, 22:00, 02:00, etc.). As a new 4H candle opens, yesterday's equivalent line is seamlessly deleted to keep the workspace pristine.
 
 ---
 
-## 🤝 Contributing
+### ◾ AESTHETICS & VIBE
 
-Contributions, issues, and feature requests are welcome! Feel free to check the [issues page](https://github.com/) if you want to submit a pull request or report a bug.
+Designed natively for the dark chart. The visual hierarchy is heavily weighted toward raw price action, using muted colors and sharp, flushed lines.
+
+* **Flush Terminations:** Opening lines, boxes, and closing lines snap perfectly to the exact minute of the session range. No overhanging ticks, no visual lag. 1-candle offsets have been mathematically corrected.
+* **Minimalist Boundaries:** Session ranges can be configured to track wicks or bodies. Labels are small, highly transparent, and stay out of the way.
+* **Muted Institutional Palette:** Deep blues, washed reds, and faded greens. HTF levels (`PDH`, `PDL`, `PWH`, `PWL`) are sharply defined but remain visually subordinate to the candlesticks.
+* **Rolling 9:30 AM Lines:** Vertical dashed execution lines that track the opening bell, automatically rolling out the oldest variations based on your exact custom input.
 
 ---
 
-## 📜 License
+### ◾ USAGE
 
-Distributed under the MIT License. See `LICENSE` for more information.
+Apply directly to a dark-themed TradingView workspace (15m timeframe recommended). All parameters, including maximum pip-filters for ranges, session timings, and gap opacities, are fully modular in the script settings.
