@@ -2,6 +2,7 @@
 indicator("Killzones @sxdmvn (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500)
 
 // --- Groups ---
+G_CALC   = 'Position Size Calculator'
 G_KZ     = 'Killzone Toggles & Colors'
 G_STYLE  = 'Killzone Box & Label Styles'
 G_TIME   = 'Session Times (HHMM-HHMM)'
@@ -11,13 +12,22 @@ G_HL     = 'HTF High/Low Levels (PDH/PDL & PWH/PWL)'
 G_GAPS   = 'Opening Gaps (NDOG & NWOG)'
 G_RANGE  = 'Session Range Boxes & Lines'
 
+// ==========================================
+// 1. POSITION SIZE CALCULATOR INPUTS (MOVED TO TOP)
+// ==========================================
+show_calc      = input.bool(true, "Show Risk Calculator Panel", group=G_CALC)
+risk_usd       = input.float(150, "Risk Amount ($)", step=10, group=G_CALC)
+sl_points      = input.float(15, "Stop Loss (Points)", step=1, group=G_CALC)
+calc_pos_str   = input.string("Bottom Right", "Panel Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_CALC)
+calc_bg_transp = input.int(85, "Panel Background Transparency", minval=0, maxval=100, group=G_CALC)
+
 // Timeframe Check Rules
 tf_is_valid = timeframe.isintraday and timeframe.multiplier <= 60
 tf_in_seconds = timeframe.in_seconds()
 tf_gap_valid = tf_in_seconds >= timeframe.in_seconds("60") and tf_in_seconds <= timeframe.in_seconds("1W")
 
 // ==========================================
-// 1. KILLZONE TOGGLES & STYLES
+// 2. KILLZONE TOGGLES & STYLES
 // ==========================================
 kz_filter          = input.bool(true, "Master Killzones Toggle", group=G_KZ)
 kz_style           = input.string("Label", "Killzone Display Style", options=["Label", "Top", "Bottom"], inline="style_main", group=G_KZ)
@@ -56,7 +66,7 @@ get_text_size(string sz) =>
 kz_text_size = get_text_size(kz_text_size_str)
 
 // ==========================================
-// 2. SESSION TIME DEFAULTS (NEW YORK TIME)
+// 3. SESSION TIME DEFAULTS (NEW YORK TIME)
 // ==========================================
 asia_time_inp    = input.session("2000-0000", "Asia Session", group=G_TIME)
 lokz_time_inp    = input.session("0200-0500", "London Session", group=G_TIME)
@@ -65,7 +75,7 @@ nylunch_time_inp = input.session("1200-1300", "NY Lunch Session", group=G_TIME)
 nypm_time_inp    = input.session("1330-1600", "NY PM Session", group=G_TIME)
 
 // ==========================================
-// 3. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 LINE
+// 4. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 LINE
 // ==========================================
 show_daily       = input.bool(true, "Vertical Line at Daily Open", group=G_TDO)
 show_mnoline     = input.bool(true, "Show True Day Open Line (Max 2)", inline="tdo_m", group=G_TDO)
@@ -80,7 +90,7 @@ line_930_style   = input.string(line.style_dashed, "Style", options=[line.style_
 line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", group=G_TDO)
 
 // ==========================================
-// 4. HTF HIGH / LOW LEVELS (PDH/PDL & PWH/PWL)
+// 5. HTF HIGH / LOW LEVELS (PDH/PDL & PWH/PWL)
 // ==========================================
 show_pdh         = input.bool(true, "Show PDH", inline="pdh_t", group=G_HL)
 pdh_color        = input.color(color.green, "", inline="pdh_t", group=G_HL)
@@ -100,7 +110,7 @@ hl_line_transp   = input.int(0, "Line Transparency (0-100)", minval=0, maxval=10
 show_hl_labels   = input.bool(true, "Show Labels on Right", group=G_HL)
 
 // ==========================================
-// 5. OPENING GAPS (NDOG & NWOG)
+// 6. OPENING GAPS (NDOG & NWOG)
 // ==========================================
 show_ndog        = input.bool(true, "Show NDOG (New Day Opening Gap)", inline="ndog_t", group=G_GAPS)
 ndog_color       = input.color(color.blue, "", inline="ndog_t", group=G_GAPS)
@@ -114,7 +124,7 @@ gap_text_sz_str  = input.string("tiny", "Text Size", options=["auto", "tiny", "s
 gap_text_size    = get_text_size(gap_text_sz_str)
 
 // ==========================================
-// 6. 4-HOUR OPENING PRICE LINES & SESSION RANGE
+// 7. 4-HOUR OPENING PRICE LINES & SESSION RANGE
 // ==========================================
 show_4h_opens    = input.bool(true, "Show 4-Hour Open Lines", inline="h4_m", group=G_H4)
 h4_color         = input.color(color.new(color.aqua, 30), "", inline="h4_m", group=G_H4)
@@ -163,7 +173,6 @@ method push_l(SessDrawings[] hist, line l) =>
     if array.size(hist) > 0 and not na(l)
         array.push(array.get(hist, array.size(hist) - 1).l_arr, l)
 
-// Keeps only max 2 of the specific session printed on chart at a time
 method new_sess(SessDrawings[] hist) =>
     array.push(hist, SessDrawings.new(array.new_box(), array.new_line()))
     if array.size(hist) > 2
@@ -179,7 +188,6 @@ var SessDrawings[] nyam_hist = array.new<SessDrawings>()
 var SessDrawings[] nyl_hist  = array.new<SessDrawings>()
 var SessDrawings[] nypm_hist = array.new<SessDrawings>()
 
-// Session State Toggles
 bool in_asia = not na(time(timeframe.period, asia_time_inp, timezone="America/New_York"))
 bool new_asia = in_asia and not in_asia[1]
 bool end_asia = in_asia[1] and not in_asia
@@ -211,7 +219,7 @@ if new_nypm and tf_is_valid
     nypm_hist.new_sess()
 
 // ==========================================
-// 7. KILLZONE BOX & LABEL CALCULATIONS
+// 8. KILLZONE BOX & LABEL CALCULATIONS
 // ==========================================
 var float top_bottom = 0
 var color kz_color   = na
@@ -277,7 +285,6 @@ if tf_is_valid
                 float box_y = vert_line_origin == "Top" ? box.get_top(curr_kz_box) : box.get_bottom(curr_kz_box)
                 line.set_y2(curr_kz_start_line, box_y)
 
-        // End line draws perfectly flush at the right edge when the session concludes
         if in_kz[1] and not in_kz
             color_line = color.new(kz_color, kz_line_transp)
             float box_y = vert_line_origin == "Top" ? box.get_top(curr_kz_box) : box.get_bottom(curr_kz_box)
@@ -315,12 +322,12 @@ f_next_start_time(string sess_time) =>
         ts += 86400000
         
     int day_of_wk = dayofweek(ts, "America/New_York")
-    if day_of_wk == 7 // Saturday pushes to Sunday Evening or Monday Morning
+    if day_of_wk == 7 
         if h >= 17
             ts += 86400000 
         else
             ts += 2 * 86400000 
-    else if day_of_wk == 1 // Sunday
+    else if day_of_wk == 1 
         if h < 17
             ts += 86400000
     ts
@@ -354,7 +361,6 @@ if barstate.islast and kz_filter and kz_style == "Label"
         if ts < next_ts
             next_ts := ts, next_color := nypm_color, next_text := "ny-pm"
             
-    // 900000 ms = 15 minutes. Show preview opening line & label ONLY if within 15 min window
     if (next_ts - time) <= 900000 and (next_ts > time)
         float box_top = high + (high-low) * 0.5
         float box_bot = low - (high-low) * 0.5
@@ -378,13 +384,12 @@ if barstate.islast and kz_filter and kz_style == "Label"
             box.set_bgcolor(preview_box, next_color)
             box.set_text(preview_box, next_text)
     else
-        // Wipe preview out once session actively starts
         if not na(preview_line)
             line.delete(preview_line), box.delete(preview_box)
             preview_line := na, preview_box := na
 
 // ==========================================
-// 8. RANGE BOXES & EXTENSIONS
+// 9. RANGE BOXES & EXTENSIONS
 // ==========================================
 if tf_is_valid
     // --- ASIA ---
@@ -638,7 +643,7 @@ if tf_is_valid
             nypm_draw_l := false
 
 // ==========================================
-// 9. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
+// 10. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
 // ==========================================
 var line tdo_l1 = na
 var label tdo_lbl1 = na
@@ -654,28 +659,23 @@ bool trigger_midnight = is_midnight_sess and not is_midnight_sess[1]
 
 if tf_is_valid
     if trigger_midnight and show_mnoline
-        // Delete the oldest True Day Open (keep max 2 on chart)
         if not na(tdo_l1)
             line.delete(tdo_l1)
             label.delete(tdo_lbl1)
             
-        // Shift yesterday's line/label to old variables (it stops extending naturally)
         tdo_l1 := tdo_l2
         tdo_lbl1 := tdo_lbl2
         
-        // Create today's True Day Open line/label
         tdo_price := open
         tdo_l2 := line.new(bar_index, open, bar_index + 1, open, color = mno_color, style = mno_style, width = mno_width)
         tdo_lbl2 := label.new(bar_index + 1, open, "True Day Open", color = color.new(color.white, 100), textcolor = mno_color, style = label.style_label_left, size = size.small)
         
         tdo_active := true
         
-    // Extend the current day's line if it is active
     if tdo_active and not na(tdo_l2)
         line.set_x2(tdo_l2, bar_index + 1)
         label.set_x(tdo_lbl2, bar_index + 1)
         
-        // Ensure price only "takes" the TDO level at or after 8:30 AM NY Time
         int h_ny = hour(time, "America/New_York")
         int m_ny = minute(time, "America/New_York")
         bool past_830 = (h_ny > 8) or (h_ny == 8 and m_ny >= 30)
@@ -690,7 +690,7 @@ if tf_is_valid
 
 bool is_new_week = ta.change(time("W")) != 0
 
-// 9:30 AM VERTICAL LINES (PAST AND UPCOMING)
+// 9:30 AM VERTICAL LINES
 var line[] past_930_lines = array.new_line()
 bool is_930_sess = tf_is_valid and not na(time(timeframe.period, session = "0930-0931", timezone = "America/New_York"))
 bool trigger_930 = is_930_sess and not is_930_sess[1]
@@ -699,11 +699,9 @@ if tf_is_valid and trigger_930 and show_930_line
     line l_930 = line.new(bar_index, low, bar_index, high, extend = extend.both, color = line_930_color, style = line_930_style, width = line_930_width)
     array.push(past_930_lines, l_930)
 
-    // Limit to the user-specified number of past 9:30 AM lines
     if array.size(past_930_lines) > past_930_count
         line.delete(array.shift(past_930_lines))
 
-// Upcoming 9:30 AM Line (Only drawn dynamically on the last bar)
 var line upcoming_930_line = na
 if tf_is_valid and show_930_line and barstate.islast
     int y = year(time, "America/New_York")
@@ -711,14 +709,12 @@ if tf_is_valid and show_930_line and barstate.islast
     int d = dayofmonth(time, "America/New_York")
     int today_930 = timestamp("America/New_York", y, m, d, 9, 30)
     
-    // Determine next 9:30 AM timestamp
     int next_930 = time < today_930 ? today_930 : today_930 + 86400000
     
-    // Adjust for the weekend (Friday night pushes to Monday morning)
     int day_of_wk = dayofweek(next_930, "America/New_York")
-    if day_of_wk == 7 // Saturday
+    if day_of_wk == 7 
         next_930 += 2 * 86400000
-    else if day_of_wk == 1 // Sunday
+    else if day_of_wk == 1 
         next_930 += 86400000
         
     if na(upcoming_930_line)
@@ -731,7 +727,7 @@ if tf_is_valid and show_930_line and barstate.islast
         line.set_width(upcoming_930_line, line_930_width)
 
 // ==========================================
-// 10. HTF HIGH / LOW (PDH, PDL, PWH, PWL)
+// 11. HTF HIGH / LOW (PDH, PDL, PWH, PWL)
 // ==========================================
 [pd_high, pd_low] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 [pw_high, pw_low] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
@@ -797,7 +793,7 @@ if tf_is_valid
             pwl_act := false
 
 // ==========================================
-// 11. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
+// 12. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
 // ==========================================
 var box ndog_b = na, var bool ndog_act = false, var float ndog_target = na, var bool ndog_up = false
 var box nwog_b = na, var bool nwog_act = false, var float nwog_target = na, var bool nwog_up = false
@@ -824,7 +820,6 @@ if tf_gap_valid
             ndog_target := prev_close
             ndog_up := open > prev_close
 
-    // Continuously extend NDOG box rightwards until perfectly filled by price
     if ndog_act and not na(ndog_b)
         box.set_right(ndog_b, bar_index + 1)
         if ndog_up and low <= ndog_target
@@ -832,7 +827,6 @@ if tf_gap_valid
         else if not ndog_up and high >= ndog_target
             ndog_act := false
 
-    // Continuously extend NWOG box rightwards until perfectly filled by price
     if nwog_act and not na(nwog_b)
         box.set_right(nwog_b, bar_index + 1)
         if nwog_up and low <= nwog_target
@@ -842,7 +836,7 @@ if tf_gap_valid
 
 
 // ==========================================
-// 12. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
+// 13. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
 // ==========================================
 var line l_h4_1800 = na, var label lbl_h4_1800 = na
 var line l_h4_2200 = na, var label lbl_h4_2200 = na
@@ -852,7 +846,6 @@ var line l_h4_1000 = na, var label lbl_h4_1000 = na
 var line l_h4_1400 = na, var label lbl_h4_1400 = na
 
 if tf_is_valid and show_4h_opens
-    // 6:00 PM (18:00) Open -> Delete previous day's 6:00 AM (06:00)
     bool s_1800 = not na(time(timeframe.period, session = "1800-1801", timezone = "America/New_York"))
     if s_1800 and not s_1800[1] and show_h4_1800
         line.delete(l_h4_0600), label.delete(lbl_h4_0600)
@@ -860,7 +853,6 @@ if tf_is_valid and show_4h_opens
         l_h4_1800 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1800 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // 10:00 PM (22:00) Open -> Delete previous day's 10:00 AM (10:00)
     bool s_2200 = not na(time(timeframe.period, session = "2200-2201", timezone = "America/New_York"))
     if s_2200 and not s_2200[1] and show_h4_2200
         line.delete(l_h4_1000), label.delete(lbl_h4_1000)
@@ -868,7 +860,6 @@ if tf_is_valid and show_4h_opens
         l_h4_2200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_2200 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // 2:00 AM (02:00) Open -> Delete previous day's 2:00 PM (14:00)
     bool s_0200 = not na(time(timeframe.period, session = "0200-0201", timezone = "America/New_York"))
     if s_0200 and not s_0200[1] and show_h4_0200
         line.delete(l_h4_1400), label.delete(lbl_h4_1400)
@@ -876,7 +867,6 @@ if tf_is_valid and show_4h_opens
         l_h4_0200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0200 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // 6:00 AM (06:00) Open -> Delete previous day's 6:00 PM (18:00)
     bool s_0600 = not na(time(timeframe.period, session = "0600-0601", timezone = "America/New_York"))
     if s_0600 and not s_0600[1] and show_h4_0600
         line.delete(l_h4_1800), label.delete(lbl_h4_1800)
@@ -884,7 +874,6 @@ if tf_is_valid and show_4h_opens
         l_h4_0600 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0600 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // 10:00 AM (10:00) Open -> Delete previous day's 10:00 PM (22:00)
     bool s_1000 = not na(time(timeframe.period, session = "1000-1001", timezone = "America/New_York"))
     if s_1000 and not s_1000[1] and show_h4_1000
         line.delete(l_h4_2200), label.delete(lbl_h4_2200)
@@ -892,7 +881,6 @@ if tf_is_valid and show_4h_opens
         l_h4_1000 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1000 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // 2:00 PM (14:00) Open -> Delete previous day's 2:00 AM (02:00)
     bool s_1400 = not na(time(timeframe.period, session = "1400-1401", timezone = "America/New_York"))
     if s_1400 and not s_1400[1] and show_h4_1400
         line.delete(l_h4_0200), label.delete(lbl_h4_0200)
@@ -900,7 +888,6 @@ if tf_is_valid and show_4h_opens
         l_h4_1400 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1400 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
 
-    // Extend Active Lines Rightward
     if not na(l_h4_1800)
         line.set_x2(l_h4_1800, bar_index + 1)
         if not na(lbl_h4_1800)
@@ -926,5 +913,28 @@ if tf_is_valid and show_4h_opens
         if not na(lbl_h4_1400)
             label.set_x(lbl_h4_1400, bar_index + 1)
 
-plotchar(tf_is_valid and top_bottom == 1 and in_kz, "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
-plotchar(tf_is_valid and top_bottom == 2 and in_kz, "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
+
+// ==========================================
+// 14. POSITION SIZE CALCULATOR (ON-CHART PANEL)
+// ==========================================
+get_tbl_pos(p) =>
+    switch p
+        "Top Right" => position.top_right
+        "Bottom Right" => position.bottom_right
+        "Bottom Left" => position.bottom_left
+        "Top Left" => position.top_left
+        => position.bottom_right
+
+var table risk_tbl = table.new(get_tbl_pos(calc_pos_str), 1, 2, bgcolor=color.new(color.black, calc_bg_transp), border_color=color.new(color.white, 95), border_width=1)
+
+if barstate.islast and show_calc
+    float point_val = syminfo.pointvalue
+    float risk_per_contract = sl_points * point_val
+    float qty = risk_per_contract > 0 ? risk_usd / risk_per_contract : 0
+    
+    string symbol_root = syminfo.root
+    string header_txt = "RISK: $" + str.tostring(risk_usd) + " | SL: " + str.tostring(sl_points) + " pts"
+    string qty_txt = str.tostring(qty, "#.##") + "x " + symbol_root
+    
+    table.cell(risk_tbl, 0, 0, header_txt, text_color=color.gray, text_size=size.tiny, text_halign=text.align_center)
+    table.cell(risk_tbl, 0, 1, qty_txt, text_color=color.white, text_size=size.normal, text_halign=text.align_center)
