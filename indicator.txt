@@ -1,97 +1,133 @@
 //@version=5
-indicator("Killzones @sxdmvn (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500)
+indicator("Killzones @sxdmvn (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
 
-// --- Groups ---
-G_CALC   = 'Position Size Calculator'
-G_KZ     = 'Killzone Toggles & Colors'
-G_STYLE  = 'Killzone Box & Label Styles'
-G_TIME   = 'Session Times (HHMM-HHMM)'
-G_TDO    = 'True Day Open (Midnight)'
-G_H4     = '4-Hour Opening Price Lines'
-G_HL     = 'HTF High/Low Levels (PDH/PDL & PWH/PWL)'
-G_GAPS   = 'Opening Gaps (NDOG & NWOG)'
-G_RANGE  = 'Session Range Boxes & Lines'
+// =============================================================================
+// GROUP CONSTANTS (ORGANIZED HIERARCHY)
+// =============================================================================
+G_CALC   = '01. Position Size Calculator'
+G_WM     = '02. Watermark & Macro Status'
+G_KZ     = '03. Master Killzones & Style Controls'
+G_TIME   = '04. Session Schedules (HHMM-HHMM)'
+G_RANGE  = '05. Session Range Boxes & Line Extensions'
+G_TDO    = '06. True Day Open (Midnight)'
+G_930    = '07. 9:30 AM Opening Bell Lines'
+G_HL     = '08. High Timeframe Levels (PDH/PDL & PWH/PWL)'
+G_SWEEP  = '09. Liquidity Sweep Detection (x)'
+G_GAPS   = '10. Opening Gaps (NDOG & NWOG)'
+G_H4     = '11. 4-Hour Opening Price Lines'
 
-// ==========================================
-// 1. POSITION SIZE CALCULATOR INPUTS (MOVED TO TOP)
-// ==========================================
-show_calc      = input.bool(true, "Show Risk Calculator Panel", group=G_CALC)
-risk_usd       = input.float(150, "Risk Amount ($)", step=10, group=G_CALC)
-sl_points      = input.float(15, "Stop Loss (Points)", step=1, group=G_CALC)
-calc_pos_str   = input.string("Bottom Right", "Panel Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_CALC)
-calc_bg_transp = input.int(85, "Panel Background Transparency", minval=0, maxval=100, group=G_CALC)
+// =============================================================================
+// 1. POSITION SIZE CALCULATOR INPUTS
+// =============================================================================
+show_calc        = input.bool(true, "Show Risk Calculator Panel", group=G_CALC)
+risk_usd         = input.float(150, "Risk Amount ($)", step=10, group=G_CALC)
+sl_points        = input.float(15, "Stop Loss (Points)", step=1, group=G_CALC)
+calc_pos_str     = input.string("Bottom Right", "Panel Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_CALC)
+calc_bg_transp   = input.int(85, "Panel Background Transparency", minval=0, maxval=100, group=G_CALC)
 
-// Timeframe Check Rules
-tf_is_valid = timeframe.isintraday and timeframe.multiplier <= 60
-tf_in_seconds = timeframe.in_seconds()
-tf_gap_valid = tf_in_seconds >= timeframe.in_seconds("60") and tf_in_seconds <= timeframe.in_seconds("1W")
+// =============================================================================
+// 2. WATERMARK & MACRO INPUTS
+// =============================================================================
+show_wm          = input.bool(true, "Show Watermark", group=G_WM)
+wm_title         = input.string("NQ1!", "Title Text", group=G_WM)
+wm_sub           = input.string("NASDAQ 100", "Subtitle Text", group=G_WM)
+wm_pos           = input.string("Bottom Left", "Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_WM)
+wm_order         = input.string("Title Above Subtitle", "Text Order", options=["Title Above Subtitle", "Subtitle Above Title"], group=G_WM)
+wm_spacing       = input.int(0, "Spacing (Line Breaks between Text)", minval=0, maxval=5, group=G_WM)
+wm_color_title   = input.color(color.new(color.white, 80), "Title Color", inline="wm_c", group=G_WM)
+wm_color_sub     = input.color(color.new(color.gray, 80), "Subtitle Color", inline="wm_c", group=G_WM)
+wm_sz_title_str  = input.string("large", "Title Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="wm_s", group=G_WM)
+wm_sz_sub_str    = input.string("normal", "Subtitle Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="wm_s", group=G_WM)
 
-// ==========================================
-// 2. KILLZONE TOGGLES & STYLES
-// ==========================================
-kz_filter          = input.bool(true, "Master Killzones Toggle", group=G_KZ)
-kz_style           = input.string("Label", "Killzone Display Style", options=["Label", "Top", "Bottom"], inline="style_main", group=G_KZ)
+show_macro       = input.bool(true, "Show Macro Window Status", group=G_WM)
+macro_attach     = input.string("Watermark", "Attach Macro To:", options=["Watermark", "Position Size Calculator"], group=G_WM)
+macro_color      = input.color(color.new(#ff5252, 30), "Macro Color", inline="mac", group=G_WM)
+macro_sz_str     = input.string("normal", "Macro Text Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="mac", group=G_WM)
 
-show_asia_kz       = input.bool(true, "Asia", inline="asia_t", group=G_KZ)
-asia_color         = input.color(color.new(#ea7e7e, 80), "", inline="asia_t", group=G_KZ)
+// =============================================================================
+// 3. MASTER KILLZONES & STYLE CONTROLS
+// =============================================================================
+kz_filter        = input.bool(true, "Master Killzones Toggle", group=G_KZ)
+kz_style         = input.string("Label", "Killzone Display Style", options=["Label", "Top", "Bottom"], group=G_KZ)
 
-show_lokz_kz       = input.bool(true, "London (lokz)", inline="lo_t", group=G_KZ)
-lokz_color         = input.color(color.new(#6c66db, 80), "", inline="lo_t", group=G_KZ)
+show_asia_kz     = input.bool(true, "Asia Killzone", inline="asia_t", group=G_KZ)
+asia_color       = input.color(color.new(#ea7e7e, 80), "", inline="asia_t", group=G_KZ)
 
-show_nyam_kz       = input.bool(true, "NY AM", inline="nyam_t", group=G_KZ)
-nyam_color         = input.color(color.new(#57b070, 80), "", inline="nyam_t", group=G_KZ)
+show_lokz_kz     = input.bool(true, "London (lokz) Killzone", inline="lo_t", group=G_KZ)
+lokz_color       = input.color(color.new(#6c66db, 80), "", inline="lo_t", group=G_KZ)
 
-show_nylunch_kz    = input.bool(true, "NY Lunch", inline="nylunch_t", group=G_KZ)
-nylunch_color      = input.color(color.new(#ffeb3b, 80), "", inline="nylunch_t", group=G_KZ)
+show_nyam_kz     = input.bool(true, "NY AM Killzone", inline="nyam_t", group=G_KZ)
+nyam_color       = input.color(color.new(#57b070, 80), "", inline="nyam_t", group=G_KZ)
 
-show_nypm_kz       = input.bool(true, "NY PM", inline="nypm_t", group=G_KZ)
-nypm_color         = input.color(color.new(#00bcd4, 80), "", inline="nypm_t", group=G_KZ)
+show_nylunch_kz  = input.bool(true, "NY Lunch Killzone", inline="nylunch_t", group=G_KZ)
+nylunch_color    = input.color(color.new(#ffeb3b, 80), "", inline="nylunch_t", group=G_KZ)
 
-vert_line_style    = input.string(line.style_solid, 'Vertical Line Style', options=[line.style_solid, line.style_dotted, line.style_dashed], group=G_STYLE)
-vert_line_origin   = input.string("Top", "Vertical Line Origin (Label Style)", options=["Top", "Bottom"], group=G_STYLE)
-kz_line_transp     = input.int(20, "Vertical Line Transparency (0=Solid, 100=Invisible)", minval=0, maxval=100, group=G_STYLE)
-kz_text_color      = input.color(color.white, "Text Color", inline="txt_style", group=G_STYLE)
-kz_text_size_str   = input.string("tiny", "Text Size", options=["auto", "tiny", "small", "normal", "large", "huge"], inline="txt_style", group=G_STYLE)
+show_nypm_kz     = input.bool(true, "NY PM Killzone", inline="nypm_t", group=G_KZ)
+nypm_color       = input.color(color.new(#00bcd4, 80), "", inline="nypm_t", group=G_KZ)
 
-get_text_size(string sz) =>
-    switch sz
-        "auto"   => size.auto
-        "tiny"   => size.tiny
-        "small"  => size.small
-        "normal" => size.normal
-        "large"  => size.large
-        "huge"   => size.huge
-        => size.tiny
+vert_line_style  = input.string(line.style_solid, 'Vertical Line Style', options=[line.style_solid, line.style_dotted, line.style_dashed], group=G_KZ)
+vert_line_origin = input.string("Top", "Vertical Line Origin (Label Style)", options=["Top", "Bottom"], group=G_KZ)
+kz_line_transp   = input.int(20, "Vertical Line Transparency (0-100)", minval=0, maxval=100, group=G_KZ)
 
-kz_text_size = get_text_size(kz_text_size_str)
+kz_text_color    = input.color(color.white, "Text Color", inline="txt_style", group=G_KZ)
+kz_text_size_str = input.string("tiny", "Killzone Text Size", options=["auto", "tiny", "small", "normal", "large", "huge"], inline="txt_style", group=G_KZ)
 
-// ==========================================
-// 3. SESSION TIME DEFAULTS (NEW YORK TIME)
-// ==========================================
+// =============================================================================
+// 4. SESSION SCHEDULES (HHMM-HHMM)
+// =============================================================================
 asia_time_inp    = input.session("2000-0000", "Asia Session", group=G_TIME)
 lokz_time_inp    = input.session("0200-0500", "London Session", group=G_TIME)
 nyam_time_inp    = input.session("0830-1100", "NY AM Session (Extended)", group=G_TIME)
 nylunch_time_inp = input.session("1200-1300", "NY Lunch Session", group=G_TIME)
 nypm_time_inp    = input.session("1330-1600", "NY PM Session", group=G_TIME)
 
-// ==========================================
-// 4. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 LINE
-// ==========================================
+// =============================================================================
+// 5. SESSION RANGE BOXES & LINE EXTENSIONS
+// =============================================================================
+range_type       = input.string("Wicks", "Use Wicks or Bodies", options=["Wicks", "Bodies"], group=G_RANGE)
+pipsFilter       = input.bool(false, "Range Max Pips Filter", inline="pf", group=G_RANGE)
+maxPips          = input.int(30, "Max Pips", inline="pf", group=G_RANGE)
+
+show_asia_box    = input.bool(true, "Asia Box", inline="r_asia", group=G_RANGE)
+ext_asia_line    = input.bool(true, "Extend Lines", inline="r_asia", group=G_RANGE)
+
+show_lokz_box    = input.bool(true, "London Box", inline="r_lo", group=G_RANGE)
+ext_lokz_line    = input.bool(true, "Extend Lines", inline="r_lo", group=G_RANGE)
+
+show_nyam_box    = input.bool(true, "NY AM Box", inline="r_nyam", group=G_RANGE)
+ext_nyam_line    = input.bool(true, "Extend Lines", inline="r_nyam", group=G_RANGE)
+
+show_nyl_box     = input.bool(true, "NY Lunch Box", inline="r_nyl", group=G_RANGE)
+ext_nyl_line     = input.bool(true, "Extend Lines", inline="r_nyl", group=G_RANGE)
+
+show_nypm_box    = input.bool(true, "NY PM Box", inline="r_nypm", group=G_RANGE)
+ext_nypm_line    = input.bool(true, "Extend Lines", inline="r_nypm", group=G_RANGE)
+
+ext_line_style   = input.string(line.style_dashed, "Ext Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="ext_s", group=G_RANGE)
+ext_line_width   = input.int(1, "Width", minval=1, maxval=5, inline="ext_s", group=G_RANGE)
+ext_line_transp  = input.int(20, "Transparency (0-100)", minval=0, maxval=100, inline="ext_s", group=G_RANGE)
+
+// =============================================================================
+// 6. TRUE DAY OPEN (MIDNIGHT)
+// =============================================================================
 show_daily       = input.bool(true, "Vertical Line at Daily Open", group=G_TDO)
 show_mnoline     = input.bool(true, "Show True Day Open Line (Max 2)", inline="tdo_m", group=G_TDO)
 mno_color        = input.color(color.new(color.orange, 20), "", inline="tdo_m", group=G_TDO)
 mno_style        = input.string(line.style_dotted, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="tdo_s", group=G_TDO)
 mno_width        = input.int(1, "Width", minval=1, maxval=5, inline="tdo_s", group=G_TDO)
 
-show_930_line    = input.bool(true, "Show 9:30 AM Vertical Lines", group=G_TDO)
-past_930_count   = input.int(2, "Number of Past 9:30 AM Lines", minval=0, group=G_TDO)
-line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", inline="930_s", group=G_TDO)
-line_930_style   = input.string(line.style_dashed, "Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="930_s", group=G_TDO)
-line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", group=G_TDO)
+// =============================================================================
+// 7. 9:30 AM OPENING BELL LINES
+// =============================================================================
+show_930_line    = input.bool(true, "Show 9:30 AM Vertical Lines", group=G_930)
+past_930_count   = input.int(2, "Number of Past 9:30 AM Lines", minval=0, group=G_930)
+line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", inline="930_s", group=G_930)
+line_930_style   = input.string(line.style_dashed, "Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="930_s", group=G_930)
+line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", group=G_930)
 
-// ==========================================
-// 5. HTF HIGH / LOW LEVELS (PDH/PDL & PWH/PWL)
-// ==========================================
+// =============================================================================
+// 8. HIGH TIMEFRAME LEVELS (PDH/PDL & PWH/PWL)
+// =============================================================================
 show_pdh         = input.bool(true, "Show PDH", inline="pdh_t", group=G_HL)
 pdh_color        = input.color(color.green, "", inline="pdh_t", group=G_HL)
 
@@ -109,9 +145,16 @@ hl_line_width    = input.int(1, "Width", minval=1, maxval=5, inline="hl_s", grou
 hl_line_transp   = input.int(0, "Line Transparency (0-100)", minval=0, maxval=100, group=G_HL)
 show_hl_labels   = input.bool(true, "Show Labels on Right", group=G_HL)
 
-// ==========================================
-// 6. OPENING GAPS (NDOG & NWOG)
-// ==========================================
+// =============================================================================
+// 9. LIQUIDITY SWEEP DETECTION (X)
+// =============================================================================
+show_sweeps      = input.bool(true, "Show Sweep Detection (x)", group=G_SWEEP)
+sweep_color      = input.color(color.new(#ff5252, 0), "Sweep Indicator Color", inline="swp", group=G_SWEEP)
+sweep_sz_str     = input.string("small", "Sweep Indicator Size", options=["tiny", "small", "normal", "large", "auto"], inline="swp", group=G_SWEEP)
+
+// =============================================================================
+// 10. OPENING GAPS (NDOG & NWOG)
+// =============================================================================
 show_ndog        = input.bool(true, "Show NDOG (New Day Opening Gap)", inline="ndog_t", group=G_GAPS)
 ndog_color       = input.color(color.blue, "", inline="ndog_t", group=G_GAPS)
 
@@ -121,11 +164,10 @@ nwog_color       = input.color(color.purple, "", inline="nwog_t", group=G_GAPS)
 gap_transp       = input.int(80, "Gap Box Transparency (0-100)", minval=0, maxval=100, group=G_GAPS)
 gap_text_color   = input.color(color.white, "Gap Text Color", inline="gap_txt", group=G_GAPS)
 gap_text_sz_str  = input.string("tiny", "Text Size", options=["auto", "tiny", "small", "normal", "large"], inline="gap_txt", group=G_GAPS)
-gap_text_size    = get_text_size(gap_text_sz_str)
 
-// ==========================================
-// 7. 4-HOUR OPENING PRICE LINES & SESSION RANGE
-// ==========================================
+// =============================================================================
+// 11. 4-HOUR OPENING PRICE LINES
+// =============================================================================
 show_4h_opens    = input.bool(true, "Show 4-Hour Open Lines", inline="h4_m", group=G_H4)
 h4_color         = input.color(color.new(color.aqua, 30), "", inline="h4_m", group=G_H4)
 h4_style         = input.string(line.style_dashed, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="h4_s", group=G_H4)
@@ -139,24 +181,33 @@ show_h4_0600     = input.bool(true, "6:00 AM", group=G_H4)
 show_h4_1000     = input.bool(true, "10:00 AM", group=G_H4)
 show_h4_1400     = input.bool(true, "2:00 PM", group=G_H4)
 
-show_asia_box    = input.bool(true, "Asia Box", inline="r_asia", group=G_RANGE)
-ext_asia_line    = input.bool(true, "Extend Lines", inline="r_asia", group=G_RANGE)
+// =============================================================================
+// HELPER FUNCTIONS & VALIDATION
+// =============================================================================
+tf_is_valid   = timeframe.isintraday and timeframe.multiplier <= 60
+tf_in_seconds = timeframe.in_seconds()
+tf_gap_valid  = tf_in_seconds >= timeframe.in_seconds("60") and tf_in_seconds <= timeframe.in_seconds("1W")
 
-show_lokz_box    = input.bool(true, "London Box", inline="r_lo", group=G_RANGE)
-ext_lokz_line    = input.bool(true, "Extend Lines", inline="r_lo", group=G_RANGE)
+get_text_size(string sz) =>
+    switch sz
+        "auto"   => size.auto
+        "tiny"   => size.tiny
+        "small"  => size.small
+        "normal" => size.normal
+        "large"  => size.large
+        "huge"   => size.huge
+        => size.tiny
 
-show_nyam_box    = input.bool(true, "NY AM Box", inline="r_nyam", group=G_RANGE)
-ext_nyam_line    = input.bool(true, "Extend Lines", inline="r_nyam", group=G_RANGE)
+get_tbl_pos(string p) =>
+    switch p
+        "Top Right"    => position.top_right
+        "Bottom Right" => position.bottom_right
+        "Bottom Left"  => position.bottom_left
+        "Top Left"     => position.top_left
+        => position.bottom_right
 
-show_nyl_box     = input.bool(true, "NY Lunch Box", inline="r_nyl", group=G_RANGE)
-ext_nyl_line     = input.bool(true, "Extend Lines", inline="r_nyl", group=G_RANGE)
-
-show_nypm_box    = input.bool(true, "NY PM Box", inline="r_nypm", group=G_RANGE)
-ext_nypm_line    = input.bool(true, "Extend Lines", inline="r_nypm", group=G_RANGE)
-
-range_type       = input.string("Wicks", "Use Wicks or Bodies", options=["Wicks", "Bodies"], group=G_RANGE)
-pipsFilter       = input.bool(false, "Range Max Pips Filter", inline="pf", group=G_RANGE)
-maxPips          = input.int(30, "Max Pips", inline="pf", group=G_RANGE)
+kz_text_size  = get_text_size(kz_text_size_str)
+gap_text_size = get_text_size(gap_text_sz_str)
 
 // ==========================================
 // MAX 2 SESSION MEMORY ENGINE (UDT)
@@ -219,7 +270,7 @@ if new_nypm and tf_is_valid
     nypm_hist.new_sess()
 
 // ==========================================
-// 8. KILLZONE BOX & LABEL CALCULATIONS
+// 10. KILLZONE BOX & LABEL CALCULATIONS
 // ==========================================
 var float top_bottom = 0
 var color kz_color   = na
@@ -229,25 +280,15 @@ var string kz_text   = na
 if tf_is_valid
     if kz_filter
         if show_asia_kz and in_asia
-            in_kz := true
-            kz_color := asia_color
-            kz_text := "asia"
+            in_kz := true, kz_color := asia_color, kz_text := "asia"
         else if show_lokz_kz and in_lokz
-            in_kz := true
-            kz_color := lokz_color
-            kz_text := "lokz"
+            in_kz := true, kz_color := lokz_color, kz_text := "lokz"
         else if show_nyam_kz and in_nyam
-            in_kz := true
-            kz_color := nyam_color
-            kz_text := "ny-am"
+            in_kz := true, kz_color := nyam_color, kz_text := "ny-am"
         else if show_nylunch_kz and in_nyl
-            in_kz := true
-            kz_color := nylunch_color
-            kz_text := "nyl" 
+            in_kz := true, kz_color := nylunch_color, kz_text := "nyl" 
         else if show_nypm_kz and in_nypm
-            in_kz := true
-            kz_color := nypm_color
-            kz_text := "ny-pm"
+            in_kz := true, kz_color := nypm_color, kz_text := "ny-pm"
         else
             in_kz := false
     else
@@ -305,7 +346,6 @@ if tf_is_valid
         top_bottom := 1
     else if kz_style == "Bottom"
         top_bottom := 2
-
 
 // ==========================================
 // UPCOMING 15-MIN SESSION PREVIEW ENGINE
@@ -389,13 +429,14 @@ if barstate.islast and kz_filter and kz_style == "Label"
             preview_line := na, preview_box := na
 
 // ==========================================
-// 9. RANGE BOXES & EXTENSIONS
+// 11. RANGE BOXES, EXTENSIONS, & SWEEPS
 // ==========================================
 if tf_is_valid
     // --- ASIA ---
     var box asia_b = na
     var line asia_h = na, var line asia_l = na
     var bool asia_draw_h = false, var bool asia_draw_l = false
+    color c_asia_ext = color.new(asia_color, ext_line_transp)
 
     if new_asia and show_asia_box
         if range_type == "Wicks"
@@ -419,9 +460,9 @@ if tf_is_valid
 
     if end_asia and show_asia_box and not na(asia_b)
         asia_draw_h := true
-        asia_h := line.new(box.get_left(asia_b), box.get_top(asia_b), bar_index, box.get_top(asia_b), color = asia_color)
+        asia_h := line.new(box.get_left(asia_b), box.get_top(asia_b), bar_index, box.get_top(asia_b), color = c_asia_ext, style = ext_line_style, width = ext_line_width)
         asia_draw_l := true
-        asia_l := line.new(box.get_left(asia_b), box.get_bottom(asia_b), bar_index, box.get_bottom(asia_b), color = asia_color)
+        asia_l := line.new(box.get_left(asia_b), box.get_bottom(asia_b), bar_index, box.get_bottom(asia_b), color = c_asia_ext, style = ext_line_style, width = ext_line_width)
         asia_hist.push_l(asia_h), asia_hist.push_l(asia_l)
         
         if pipsFilter and ((box.get_top(asia_b) - box.get_bottom(asia_b)) * 10000 > maxPips)
@@ -434,18 +475,23 @@ if tf_is_valid
 
     if asia_draw_h and not na(asia_h)
         line.set_x2(asia_h, bar_index)
-        if high > line.get_y1(asia_h)
+        if high >= line.get_y1(asia_h)
             asia_draw_h := false 
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if asia_draw_l and not na(asia_l)
         line.set_x2(asia_l, bar_index)
-        if low < line.get_y1(asia_l)
+        if low <= line.get_y1(asia_l)
             asia_draw_l := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
     // --- LONDON (LOKZ) ---
     var box lokz_b = na
     var line lokz_h = na, var line lokz_l = na
     var bool lokz_draw_h = false, var bool lokz_draw_l = false
+    color c_lokz_ext = color.new(lokz_color, ext_line_transp)
 
     if new_lokz and show_lokz_box
         if range_type == "Wicks"
@@ -469,9 +515,9 @@ if tf_is_valid
 
     if end_lokz and show_lokz_box and not na(lokz_b)
         lokz_draw_h := true
-        lokz_h := line.new(box.get_left(lokz_b), box.get_top(lokz_b), bar_index, box.get_top(lokz_b), color = lokz_color)
+        lokz_h := line.new(box.get_left(lokz_b), box.get_top(lokz_b), bar_index, box.get_top(lokz_b), color = c_lokz_ext, style = ext_line_style, width = ext_line_width)
         lokz_draw_l := true
-        lokz_l := line.new(box.get_left(lokz_b), box.get_bottom(lokz_b), bar_index, box.get_bottom(lokz_b), color = lokz_color)
+        lokz_l := line.new(box.get_left(lokz_b), box.get_bottom(lokz_b), bar_index, box.get_bottom(lokz_b), color = c_lokz_ext, style = ext_line_style, width = ext_line_width)
         lokz_hist.push_l(lokz_h), lokz_hist.push_l(lokz_l)
         
         if pipsFilter and ((box.get_top(lokz_b) - box.get_bottom(lokz_b)) * 10000 > maxPips)
@@ -484,18 +530,23 @@ if tf_is_valid
 
     if lokz_draw_h and not na(lokz_h)
         line.set_x2(lokz_h, bar_index)
-        if high > line.get_y1(lokz_h)
+        if high >= line.get_y1(lokz_h)
             lokz_draw_h := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if lokz_draw_l and not na(lokz_l)
         line.set_x2(lokz_l, bar_index)
-        if low < line.get_y1(lokz_l)
+        if low <= line.get_y1(lokz_l)
             lokz_draw_l := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
     // --- NY AM ---
     var box nyam_b = na
     var line nyam_h = na, var line nyam_l = na
     var bool nyam_draw_h = false, var bool nyam_draw_l = false
+    color c_nyam_ext = color.new(nyam_color, ext_line_transp)
 
     if new_nyam and show_nyam_box
         if range_type == "Wicks"
@@ -519,9 +570,9 @@ if tf_is_valid
 
     if end_nyam and show_nyam_box and not na(nyam_b)
         nyam_draw_h := true
-        nyam_h := line.new(box.get_left(nyam_b), box.get_top(nyam_b), bar_index, box.get_top(nyam_b), color = nyam_color)
+        nyam_h := line.new(box.get_left(nyam_b), box.get_top(nyam_b), bar_index, box.get_top(nyam_b), color = c_nyam_ext, style = ext_line_style, width = ext_line_width)
         nyam_draw_l := true
-        nyam_l := line.new(box.get_left(nyam_b), box.get_bottom(nyam_b), bar_index, box.get_bottom(nyam_b), color = nyam_color)
+        nyam_l := line.new(box.get_left(nyam_b), box.get_bottom(nyam_b), bar_index, box.get_bottom(nyam_b), color = c_nyam_ext, style = ext_line_style, width = ext_line_width)
         nyam_hist.push_l(nyam_h), nyam_hist.push_l(nyam_l)
         
         if pipsFilter and ((box.get_top(nyam_b) - box.get_bottom(nyam_b)) * 10000 > maxPips)
@@ -534,18 +585,23 @@ if tf_is_valid
 
     if nyam_draw_h and not na(nyam_h)
         line.set_x2(nyam_h, bar_index)
-        if high > line.get_y1(nyam_h)
+        if high >= line.get_y1(nyam_h)
             nyam_draw_h := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if nyam_draw_l and not na(nyam_l)
         line.set_x2(nyam_l, bar_index)
-        if low < line.get_y1(nyam_l)
+        if low <= line.get_y1(nyam_l)
             nyam_draw_l := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
     // --- NY LUNCH ---
     var box nyl_b = na
     var line nyl_h = na, var line nyl_l = na
     var bool nyl_draw_h = false, var bool nyl_draw_l = false
+    color c_nyl_ext = color.new(nylunch_color, ext_line_transp)
 
     if new_nyl and show_nyl_box
         if range_type == "Wicks"
@@ -569,9 +625,9 @@ if tf_is_valid
 
     if end_nyl and show_nyl_box and not na(nyl_b)
         nyl_draw_h := true
-        nyl_h := line.new(box.get_left(nyl_b), box.get_top(nyl_b), bar_index, box.get_top(nyl_b), color = nylunch_color)
+        nyl_h := line.new(box.get_left(nyl_b), box.get_top(nyl_b), bar_index, box.get_top(nyl_b), color = c_nyl_ext, style = ext_line_style, width = ext_line_width)
         nyl_draw_l := true
-        nyl_l := line.new(box.get_left(nyl_b), box.get_bottom(nyl_b), bar_index, box.get_bottom(nyl_b), color = nylunch_color)
+        nyl_l := line.new(box.get_left(nyl_b), box.get_bottom(nyl_b), bar_index, box.get_bottom(nyl_b), color = c_nyl_ext, style = ext_line_style, width = ext_line_width)
         nyl_hist.push_l(nyl_h), nyl_hist.push_l(nyl_l)
         
         if pipsFilter and ((box.get_top(nyl_b) - box.get_bottom(nyl_b)) * 10000 > maxPips)
@@ -584,18 +640,23 @@ if tf_is_valid
 
     if nyl_draw_h and not na(nyl_h)
         line.set_x2(nyl_h, bar_index)
-        if high > line.get_y1(nyl_h)
+        if high >= line.get_y1(nyl_h)
             nyl_draw_h := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if nyl_draw_l and not na(nyl_l)
         line.set_x2(nyl_l, bar_index)
-        if low < line.get_y1(nyl_l)
+        if low <= line.get_y1(nyl_l)
             nyl_draw_l := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
     // --- NY PM ---
     var box nypm_b = na
     var line nypm_h = na, var line nypm_l = na
     var bool nypm_draw_h = false, var bool nypm_draw_l = false
+    color c_nypm_ext = color.new(nypm_color, ext_line_transp)
 
     if new_nypm and show_nypm_box
         if range_type == "Wicks"
@@ -619,9 +680,9 @@ if tf_is_valid
 
     if end_nypm and show_nypm_box and not na(nypm_b)
         nypm_draw_h := true
-        nypm_h := line.new(box.get_left(nypm_b), box.get_top(nypm_b), bar_index, box.get_top(nypm_b), color = nypm_color)
+        nypm_h := line.new(box.get_left(nypm_b), box.get_top(nypm_b), bar_index, box.get_top(nypm_b), color = c_nypm_ext, style = ext_line_style, width = ext_line_width)
         nypm_draw_l := true
-        nypm_l := line.new(box.get_left(nypm_b), box.get_bottom(nypm_b), bar_index, box.get_bottom(nypm_b), color = nypm_color)
+        nypm_l := line.new(box.get_left(nypm_b), box.get_bottom(nypm_b), bar_index, box.get_bottom(nypm_b), color = c_nypm_ext, style = ext_line_style, width = ext_line_width)
         nypm_hist.push_l(nypm_h), nypm_hist.push_l(nypm_l)
         
         if pipsFilter and ((box.get_top(nypm_b) - box.get_bottom(nypm_b)) * 10000 > maxPips)
@@ -634,16 +695,20 @@ if tf_is_valid
 
     if nypm_draw_h and not na(nypm_h)
         line.set_x2(nypm_h, bar_index)
-        if high > line.get_y1(nypm_h)
+        if high >= line.get_y1(nypm_h)
             nypm_draw_h := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if nypm_draw_l and not na(nypm_l)
         line.set_x2(nypm_l, bar_index)
-        if low < line.get_y1(nypm_l)
+        if low <= line.get_y1(nypm_l)
             nypm_draw_l := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
 // ==========================================
-// 10. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
+// 12. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
 // ==========================================
 var line tdo_l1 = na
 var label tdo_lbl1 = na
@@ -727,7 +792,7 @@ if tf_is_valid and show_930_line and barstate.islast
         line.set_width(upcoming_930_line, line_930_width)
 
 // ==========================================
-// 11. HTF HIGH / LOW (PDH, PDL, PWH, PWL)
+// 13. HTF HIGH / LOW (PDH, PDL, PWH, PWL) & SWEEPS
 // ==========================================
 [pd_high, pd_low] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 [pw_high, pw_low] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
@@ -764,12 +829,15 @@ if tf_is_valid
             pwl_lbl := show_hl_labels ? label.new(bar_index + 1, pw_low, "PWL", color = color.new(color.white, 100), textcolor = pwl_color, style = label.style_label_left, size = size.tiny) : na
             pwl_act := true
 
+    // Single-Sweep Tracking: Line stops & triggers sweep only ONCE
     if pdh_act and not na(pdh_l)
         line.set_x2(pdh_l, bar_index + 1)
         if not na(pdh_lbl)
             label.set_x(pdh_lbl, bar_index + 1)
         if high >= line.get_y1(pdh_l)
             pdh_act := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if pdl_act and not na(pdl_l)
         line.set_x2(pdl_l, bar_index + 1)
@@ -777,6 +845,8 @@ if tf_is_valid
             label.set_x(pdl_lbl, bar_index + 1)
         if low <= line.get_y1(pdl_l)
             pdl_act := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
     if pwh_act and not na(pwh_l)
         line.set_x2(pwh_l, bar_index + 1)
@@ -784,6 +854,8 @@ if tf_is_valid
             label.set_x(pwh_lbl, bar_index + 1)
         if high >= line.get_y1(pwh_l)
             pwh_act := false
+            if show_sweeps
+                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
 
     if pwl_act and not na(pwl_l)
         line.set_x2(pwl_l, bar_index + 1)
@@ -791,9 +863,11 @@ if tf_is_valid
             label.set_x(pwl_lbl, bar_index + 1)
         if low <= line.get_y1(pwl_l)
             pwl_act := false
+            if show_sweeps
+                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
 
 // ==========================================
-// 12. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
+// 14. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
 // ==========================================
 var box ndog_b = na, var bool ndog_act = false, var float ndog_target = na, var bool ndog_up = false
 var box nwog_b = na, var bool nwog_act = false, var float nwog_target = na, var bool nwog_up = false
@@ -834,9 +908,8 @@ if tf_gap_valid
         else if not nwog_up and high >= nwog_target
             nwog_act := false
 
-
 // ==========================================
-// 13. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
+// 15. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
 // ==========================================
 var line l_h4_1800 = na, var label lbl_h4_1800 = na
 var line l_h4_2200 = na, var label lbl_h4_2200 = na
@@ -913,28 +986,69 @@ if tf_is_valid and show_4h_opens
         if not na(lbl_h4_1400)
             label.set_x(lbl_h4_1400, bar_index + 1)
 
+plotchar(tf_is_valid and top_bottom == 1 and in_kz, "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
+plotchar(tf_is_valid and top_bottom == 2 and in_kz, "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
 
 // ==========================================
-// 14. POSITION SIZE CALCULATOR (ON-CHART PANEL)
+// 16. UI ENGINE (RISK CALC & WATERMARK & MACROS)
 // ==========================================
-get_tbl_pos(p) =>
-    switch p
-        "Top Right" => position.top_right
-        "Bottom Right" => position.bottom_right
-        "Bottom Left" => position.bottom_left
-        "Top Left" => position.top_left
-        => position.bottom_right
+if barstate.islast
+    int min_ny = minute(time, "America/New_York")
+    bool is_macro_time = (min_ny >= 45 or min_ny < 15) and show_macro
 
-var table risk_tbl = table.new(get_tbl_pos(calc_pos_str), 1, 2, bgcolor=color.new(color.black, calc_bg_transp), border_color=color.new(color.white, 95), border_width=1)
+    // -- Position Size Calculator Render --
+    if show_calc
+        int c_rows = is_macro_time and macro_attach == "Position Size Calculator" ? 3 : 2
+        table r_tbl = table.new(get_tbl_pos(calc_pos_str), 1, c_rows, bgcolor=color.new(color.black, calc_bg_transp), border_color=color.new(color.white, 95), border_width=1)
+        
+        float point_val = syminfo.pointvalue
+        float risk_per_contract = sl_points * point_val
+        float qty = risk_per_contract > 0 ? risk_usd / risk_per_contract : 0
+        string header_txt = "RISK: $" + str.tostring(risk_usd) + " | SL: " + str.tostring(sl_points) + " pts"
+        string qty_txt = str.tostring(qty, "#.##") + "x " + syminfo.root
 
-if barstate.islast and show_calc
-    float point_val = syminfo.pointvalue
-    float risk_per_contract = sl_points * point_val
-    float qty = risk_per_contract > 0 ? risk_usd / risk_per_contract : 0
-    
-    string symbol_root = syminfo.root
-    string header_txt = "RISK: $" + str.tostring(risk_usd) + " | SL: " + str.tostring(sl_points) + " pts"
-    string qty_txt = str.tostring(qty, "#.##") + "x " + symbol_root
-    
-    table.cell(risk_tbl, 0, 0, header_txt, text_color=color.gray, text_size=size.tiny, text_halign=text.align_center)
-    table.cell(risk_tbl, 0, 1, qty_txt, text_color=color.white, text_size=size.normal, text_halign=text.align_center)
+        bool calc_is_top = calc_pos_str == "Top Right" or calc_pos_str == "Top Left"
+        bool calc_has_macro = is_macro_time and macro_attach == "Position Size Calculator"
+
+        int c_r0 = calc_is_top ? 0 : (calc_has_macro ? 1 : 0)
+        int c_r1 = calc_is_top ? 1 : (calc_has_macro ? 2 : 1)
+        int c_rmac = calc_is_top ? 2 : 0
+
+        table.cell(r_tbl, 0, c_r0, header_txt, text_color=color.gray, text_size=size.tiny, text_halign=text.align_center)
+        table.cell(r_tbl, 0, c_r1, qty_txt, text_color=color.white, text_size=size.normal, text_halign=text.align_center)
+        
+        if calc_has_macro
+            table.cell(r_tbl, 0, c_rmac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
+
+    // -- Custom Watermark Render --
+    if show_wm
+        int w_rows = is_macro_time and macro_attach == "Watermark" ? 3 : 2
+        table w_tbl = table.new(get_tbl_pos(wm_pos), 1, w_rows, bgcolor=color.new(color.black, 100))
+        
+        bool wm_is_top = wm_pos == "Top Right" or wm_pos == "Top Left"
+        bool wm_has_macro = is_macro_time and macro_attach == "Watermark"
+        bool t_above = wm_order == "Title Above Subtitle"
+
+        // Build spacing string dynamically
+        string spacing_str = ""
+        if wm_spacing > 0
+            for i = 1 to wm_spacing
+                spacing_str += "\n"
+
+        string t1_txt = t_above ? wm_title : wm_sub
+        color  t1_col = t_above ? wm_color_title : wm_color_sub
+        string t1_sz  = t_above ? wm_sz_title_str : wm_sz_sub_str
+
+        string t2_txt = (t_above ? wm_sub : wm_title) + spacing_str
+        color  t2_col = t_above ? wm_color_sub : wm_color_title
+        string t2_sz  = t_above ? wm_sz_sub_str : wm_sz_title_str
+
+        int w_r0 = wm_is_top ? 0 : (wm_has_macro ? 1 : 0)
+        int w_r1 = wm_is_top ? 1 : (wm_has_macro ? 2 : 1)
+        int w_rmac = wm_is_top ? 2 : 0
+
+        table.cell(w_tbl, 0, w_r0, t1_txt, text_color=t1_col, text_size=get_text_size(t1_sz), text_halign=text.align_center)
+        table.cell(w_tbl, 0, w_r1, t2_txt, text_color=t2_col, text_size=get_text_size(t2_sz), text_halign=text.align_center)
+        
+        if wm_has_macro
+            table.cell(w_tbl, 0, w_rmac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
