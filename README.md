@@ -1,43 +1,51 @@
-# ◼️ KILLZONES [v5]
+# ◼️ KILLZONES & EXECUTION SUITE [v5]
 
-> Precision session tracking and institutional pricing models for TradingView.
+> Institutional time-and-price delivery engine with strict memory management for TradingView.
 
-Engineered for clean, quantitative execution on high-volatility assets like Nasdaq futures. This indicator strips away chart noise through strict memory management, displaying only what is mathematically necessary for immediate contract risk management and order flow tracking.
+Built specifically for high-precision execution across index and commodity futures (NQ, ES, CL, GC). Strips out chart noise, prevents drawing-limit lag, and delivers pure algorithmic order-flow references directly onto dark-theme charts.
 
-<img width="1253" height="751" alt="image" src="https://github.com/user-attachments/assets/46587047-2241-4276-a3a2-0a676c22f6f3" />
+<img width="1253" height="751" alt="preview" src="https://github.com/user-attachments/assets/46587047-2241-4276-a3a2-0a676c22f6f3" />
 
 ---
 
 ### ◾ CORE ARCHITECTURE
 
-**Strict Memory Engine**
-Chart clutter is a liability. The custom memory engine ruthlessly purges obsolete drawings, holding a strict maximum of two historical data points per session.
+**Strict 2-Session Memory Protocol**  
+Drawings are strictly managed to preserve chart performance. The engine holds a maximum of two historical sessions per killzone, instantly purging obsolete boxes and lines from memory the moment a new session opens.
 
-**15-Minute Forward Projection**
-A predictive visual engine. Exactly 15 minutes before an impending killzone, a localized preview (opening line and label) projects into the future on the x-axis. The moment the session executes, the preview dissolves into the live session box, and the oldest historical session is terminated to maintain the 2-session max.
+**15-Minute Forward Projections**  
+A dynamic visual engine. Exactly 15 minutes before an impending session open, a forward line and label project along the future x-axis, anchoring seamlessly into the live range box at the opening bell.
 
-**True Day Open (TDO) Sweep Protocol**
-Plots the midnight True Day Open. To prevent false signals during low-volume hours, the algorithm ignores all price action until the 8:30 AM NY equities open. Post-8:30, the line instantly terminates the exact millisecond price sweeps the open.
+**True Day Open (TDO) Sweep Protocol**  
+Plots the 00:00 NY True Day Open. Ignores pre-market overnight chop, only activating its sweep logic at 8:30 AM NY. The line automatically terminates the exact tick price sweeps the level.
 
-**Gap Mechanics (NDOG & NWOG)**
-Tracks New Day and New Week Opening Gaps. Gap boxes track the exact target price of the previous close and project infinitely rightward until a future candle perfectly intersects and fills the void.
+**Single-Trigger Liquidity Sweeps (`x`)**  
+Monitors HTF levels (`PDH`, `PDL`, `PWH`, `PWL`) and active session extremes. Drops a subtle `x` marker on the raiding wick the instant price breaches liquidity by a single tick, immediately deactivating the level to eliminate repetitive false signals.
 
-**Rolling 4H Arrays**
-Maintains a rolling 24-hour cycle of 4-hour opening price lines (18:00, 22:00, 02:00, etc.). As a new 4H candle opens, yesterday's equivalent line is seamlessly deleted to keep the workspace pristine.
+**True Algorithmic Gap Tracking (NDOG & NWOG)**  
+Calculates true price imbalances between session closes and opens. Projects opening gaps forward continuously until incoming candle price action fully balances the void.
 
----
+**Rolling 24-Hour 4H Opens**  
+Automates the institutional 6-tier 4H cycle (18:00, 22:00, 02:00, 06:00, 10:00, 14:00 NY), automatically cycling out yesterday's levels as new blocks print.
 
-### ◾ AESTHETICS & VIBE
-
-Designed natively for the dark chart. The visual hierarchy is heavily weighted toward raw price action, using muted colors and sharp, flushed lines.
-
-* **Flush Terminations:** Opening lines, boxes, and closing lines snap perfectly to the exact minute of the session range. No overhanging ticks, no visual lag. 1-candle offsets have been mathematically corrected.
-* **Minimalist Boundaries:** Session ranges can be configured to track wicks or bodies. Labels are small, highly transparent, and stay out of the way.
-* **Muted Institutional Palette:** Deep blues, washed reds, and faded greens. HTF levels (`PDH`, `PDL`, `PWH`, `PWL`) are sharply defined but remain visually subordinate to the candlesticks.
-* **Rolling 9:30 AM Lines:** Vertical dashed execution lines that track the opening bell, automatically rolling out the oldest variations based on your exact custom input.
+**On-Chart Execution Desk & Macro HUD**  
+* **Risk/Position Desk:** Reads native contract point values (`syminfo.pointvalue`) to output exact sizing and micro allocations based on user-defined dollar risk and point stop loss.
+* **Macro Window Indicator:** Auto-tracks the hourly institutional 20-minute macro injections (xx:45–xx:15).
+* **Minimalist HUD Watermark:** Configurable typography panel with multi-line spacing control.
 
 ---
 
-### ◾ USAGE
+### ◾ VISUAL DESIGN
 
-Apply directly to a dark-themed TradingView workspace (15m timeframe recommended). All parameters, including maximum pip-filters for ranges, session timings, and gap opacities, are fully modular in the script settings.
+Engineered specifically for dark execution terminals with zero visual clutter:
+* **Color-Matched Extensions:** Range extension lines automatically inherit the exact tone of their parent killzone with custom line-style controls.
+* **Flush Coordinates:** Session start, midpoint, and extension markers snap directly to execution minutes without overhanging ticks or visual drift.
+* **Modular 11-Tier Settings:** Granular control over Killzone font sizes, line transparencies, gap opacities, and HUD placement.
+
+---
+
+### ◾ SPECS
+
+* **Assets:** NQ, MNQ, ES, MES, GC, CL
+* **Optimal Timeframes:** 1m, 3m, 5m, 15m
+* **Timezone:** Internal engine locked strictly to `America/New_York` algorithmic time
