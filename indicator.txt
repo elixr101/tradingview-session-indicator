@@ -1,5 +1,5 @@
 //@version=5
-indicator("Killzones @sxdmvn/@vocurit (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
+indicator("Killzones @sxdmvn (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
 
 // =============================================================================
 // GROUP CONSTANTS (ORGANIZED HIERARCHY)
@@ -12,18 +12,22 @@ G_RANGE  = '05. SESSION RANGE BOXES & LINE EXTENSIONS'
 G_TDO    = '06. TRUE DAY OPEN (MIDNIGHT)'
 G_930    = '07. 9:30 AM OPENING BELL LINES'
 G_HL     = '08. HIGH TIMEFRAME LEVELS (PDH/PDL & PWH/PWL)'
-G_SWEEP  = '09. LIQUIDITY SWEEP DETECTION (X)'
-G_GAPS   = '10. OPENING GAPS (NDOG & NWOG)'
-G_H4     = '11. 4-HOUR OPENING PRICE LINES'
+G_EQ     = '09. RELATIVE EQUAL HIGHS & LOWS (REQH/REQL)'
+G_SWEEP  = '10. LIQUIDITY SWEEP DETECTION & HUD ALERTS'
+G_GAPS   = '11. OPENING GAPS (NDOG & NWOG)'
+G_H4     = '12. 4-HOUR OPENING PRICE LINES'
 
 // =============================================================================
-// 1. POSITION SIZE CALCULATOR INPUTS
+// 1. POSITION SIZE CALCULATOR & SWEEP TOGGLES
 // =============================================================================
 show_calc        = input.bool(true, "Show Risk Calculator Panel", group=G_CALC)
 risk_usd         = input.float(500, "Risk Amount ($)", step=10, group=G_CALC)
 sl_points        = input.float(25, "Stop Loss (Points)", step=1, group=G_CALC)
 calc_pos_str     = input.string("Bottom Right", "Panel Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_CALC)
 calc_bg_transp   = input.int(85, "Panel Background Transparency", minval=0, maxval=100, group=G_CALC)
+
+show_sweeps      = input.bool(true, "Master Sweep Toggle", group=G_CALC)
+sweep_mode       = input.string("Both ('x' and Candle Color)", "Sweep Marker Display", options=["Both ('x' and Candle Color)", "Only 'x'", "Only Candle Color"], group=G_CALC)
 
 // =============================================================================
 // 2. WATERMARK & MACRO INPUTS
@@ -130,13 +134,10 @@ line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", gro
 // =============================================================================
 show_pdh         = input.bool(true, "Show PDH", inline="pdh_t", group=G_HL)
 pdh_color        = input.color(#b91c1c, "", inline="pdh_t", group=G_HL)
-
 show_pdl         = input.bool(true, "Show PDL", inline="pdl_t", group=G_HL)
 pdl_color        = input.color(#b91c1c, "", inline="pdl_t", group=G_HL)
-
 show_pwh         = input.bool(true, "Show PWH", inline="pwh_t", group=G_HL)
 pwh_color        = input.color(#b91c1c, "", inline="pwh_t", group=G_HL)
-
 show_pwl         = input.bool(true, "Show PWL", inline="pwl_t", group=G_HL)
 pwl_color        = input.color(#b91c1c, "", inline="pwl_t", group=G_HL)
 
@@ -146,14 +147,50 @@ hl_line_transp   = input.int(0, "Line Transparency (0-100)", minval=0, maxval=10
 show_hl_labels   = input.bool(true, "Show Labels on Right", group=G_HL)
 
 // =============================================================================
-// 9. LIQUIDITY SWEEP DETECTION (X)
+// 9. RELATIVE EQUAL HIGHS & LOWS (REQH / REQL)
 // =============================================================================
-show_sweeps      = input.bool(true, "Show Sweep Detection (x)", group=G_SWEEP)
-sweep_color      = input.color(#b91c1c, "Sweep Indicator Color", inline="swp", group=G_SWEEP)
-sweep_sz_str     = input.string("small", "Sweep Indicator Size", options=["tiny", "small", "normal", "large", "auto"], inline="swp", group=G_SWEEP)
+show_reqh        = input.bool(true, "Show REQH (Equal Highs)", inline="reqh_t", group=G_EQ)
+reqh_color       = input.color(#b91c1c, "", inline="reqh_t", group=G_EQ)
+show_reql        = input.bool(true, "Show REQL (Equal Lows)", inline="reql_t", group=G_EQ)
+reql_color       = input.color(#b91c1c, "", inline="reql_t", group=G_EQ)
+
+delete_on_sweep  = input.bool(false, "Delete Line After Swept (Uncheck to keep historical)", group=G_EQ)
+
+eq_tol_ltf       = input.float(0.25, "Buffer: < 15m", step=0.25, inline="eq_tol", group=G_EQ)
+eq_tol_htf       = input.float(1.5, "15m to 4H", step=0.25, inline="eq_tol", group=G_EQ)
+eq_tol_dtf       = input.float(3.0, "Daily+", step=0.25, inline="eq_tol", group=G_EQ)
+
+eq_lookback_mins = input.int(720, "Lookback Window (Minutes)", minval=15, maxval=2880, group=G_EQ)
+eq_line_style    = input.string(line.style_solid, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="eq_s", group=G_EQ)
+eq_line_width    = input.int(1, "Width", minval=1, maxval=5, inline="eq_s", group=G_EQ)
+eq_transp        = input.int(0, "Transparency (0-100)", minval=0, maxval=100, group=G_EQ)
+
+eq_txt_color     = input.color(color.white, "Text Color", inline="eq_txt", group=G_EQ)
+eq_txt_size_str  = input.string("small", "Text Size", options=["tiny", "small", "normal", "large"], inline="eq_txt", group=G_EQ)
+eq_valign_str    = input.string("Middle", "Vertical Alignment", options=["Top", "Middle", "Bottom"], inline="eq_align", group=G_EQ)
+eq_halign_str    = input.string("Center", "Horizontal Alignment", options=["Left", "Center", "Right"], inline="eq_align", group=G_EQ)
 
 // =============================================================================
-// 10. OPENING GAPS (NDOG & NWOG)
+// 10. LIQUIDITY SWEEP DETECTION & HUD ALERTS
+// =============================================================================
+show_alert_hud       = input.bool(true, "Show Sweep Alert HUD", group=G_SWEEP)
+alert_attach         = input.string("Position Size Calculator", "Attach Alerts To:", options=["Standalone HUD", "Position Size Calculator", "Watermark"], group=G_SWEEP)
+alert_duration       = input.int(3, "HUD Duration (Mins)", minval=1, maxval=60, inline="hud", group=G_SWEEP)
+alert_pos            = input.string("Middle Right", "Standalone HUD Position", options=["Top Right", "Middle Right", "Bottom Right", "Top Center", "Middle Center", "Bottom Center", "Top Left", "Middle Left", "Bottom Left"], group=G_SWEEP)
+alert_color          = input.color(color.new(#ff5252, 0), "HUD Text Color", inline="hud_c", group=G_SWEEP)
+alert_bg             = input.color(color.new(color.black, 85), "HUD Background", inline="hud_c", group=G_SWEEP)
+
+max_req_sweeps       = input.int(2, "Max REQH/L 'x' per Session Block", minval=1, inline="swp_lim", group=G_SWEEP)
+max_kz_sweeps        = input.int(1, "Max Session H/L 'x' per Block", minval=1, inline="swp_lim", group=G_SWEEP)
+max_htf_sweeps       = input.int(1, "Max HTF 'x' (PDH/4H/TDO)", minval=1, inline="swp_lim", group=G_SWEEP)
+
+sweep_color          = input.color(#b91c1c, "Sweep Color", inline="swp", group=G_SWEEP)
+sweep_sz_str         = input.string("small", "Size", options=["tiny", "small", "normal", "large", "auto"], inline="swp", group=G_SWEEP)
+sweep_candle_max_tf  = input.int(15, "Max TF for Candle Coloring (Mins, 0=All)", minval=0, maxval=1440, group=G_SWEEP)
+c_fade_mins          = input.int(0, "Candle Color Lifespan (Mins, 0 = Permanent)", minval=0, maxval=1440, group=G_SWEEP)
+
+// =============================================================================
+// 11. OPENING GAPS (NDOG & NWOG)
 // =============================================================================
 show_ndog        = input.bool(true, "Show NDOG (New Day Opening Gap)", inline="ndog_t", group=G_GAPS)
 ndog_color       = input.color(#2563eb, "", inline="ndog_t", group=G_GAPS)
@@ -166,7 +203,7 @@ gap_text_color   = input.color(color.white, "Gap Text Color", inline="gap_txt", 
 gap_text_sz_str  = input.string("small", "Text Size", options=["auto", "tiny", "small", "normal", "large"], inline="gap_txt", group=G_GAPS)
 
 // =============================================================================
-// 11. 4-HOUR OPENING PRICE LINES
+// 12. 4-HOUR OPENING PRICE LINES
 // =============================================================================
 show_4h_opens    = input.bool(true, "Show 4-Hour Open Lines", inline="h4_m", group=G_H4)
 h4_color         = input.color(color.new(color.gray, 40), "", inline="h4_m", group=G_H4)
@@ -198,6 +235,8 @@ buf_h4_1400      = input.int(15, "Buffer (Mins, 0=Infinite)", minval=0, maxval=2
 tf_is_valid   = timeframe.isintraday and timeframe.multiplier <= 60
 tf_in_seconds = timeframe.in_seconds()
 tf_gap_valid  = tf_in_seconds >= timeframe.in_seconds("60") and tf_in_seconds <= timeframe.in_seconds("1W")
+tf_curr_min   = timeframe.isintraday ? (timeframe.multiplier == 0 ? 1 : timeframe.multiplier) : (timeframe.isdaily ? 1440 : 10080)
+is_short_tf   = tf_curr_min <= 15
 
 get_text_size(string sz) =>
     switch sz
@@ -211,21 +250,160 @@ get_text_size(string sz) =>
 
 get_tbl_pos(string p) =>
     switch p
-        "Top Right"    => position.top_right
-        "Bottom Right" => position.bottom_right
-        "Bottom Left"  => position.bottom_left
-        "Top Left"     => position.top_left
+        "Top Right"      => position.top_right
+        "Middle Right"   => position.middle_right
+        "Bottom Right"   => position.bottom_right
+        "Top Center"     => position.top_center
+        "Middle Center"  => position.middle_center
+        "Bottom Center"  => position.bottom_center
+        "Top Left"       => position.top_left
+        "Middle Left"    => position.middle_left
+        "Bottom Left"    => position.bottom_left
         => position.bottom_right
+
+get_eq_label_style(string v_align) =>
+    switch v_align
+        "Top"    => label.style_label_down
+        "Bottom" => label.style_label_up
+        "Middle" => label.style_label_center
+        => label.style_label_down
 
 kz_text_size  = get_text_size(kz_text_size_str)
 gap_text_size = get_text_size(gap_text_sz_str)
+eq_text_size  = get_text_size(eq_txt_size_str)
+
+
+// =============================================================================
+// UNIFIED TIME-BASED SWEEP PRUNING, HUD & FIFO QUEUE ENGINE
+// =============================================================================
+type CurrentSweepState
+    bool swept
+    int  t
+
+var CurrentSweepState sweep_state = CurrentSweepState.new(false, 0)
+sweep_state.swept := false
+
+type TimedSweep
+    string id
+    label lbl
+    int t
+    int max_ms
+
+var TimedSweep[] intra_sweeps = array.new<TimedSweep>()
+var TimedSweep[] htf_sweeps = array.new<TimedSweep>()
+
+// Tracking Arrays for FIFO Deletion Limits
+var label[] track_req  = array.new_label()
+var label[] track_kz_h = array.new_label()
+var label[] track_kz_l = array.new_label()
+var label[] track_pdh  = array.new_label()
+var label[] track_pdl  = array.new_label()
+var label[] track_pwh  = array.new_label()
+var label[] track_pwl  = array.new_label()
+var label[] track_tdo  = array.new_label()
+var label[] track_4h   = array.new_label()
+var label[] track_gap  = array.new_label()
+
+// HUD Arrays
+var string[] alert_msgs = array.new_string()
+var int[] alert_times = array.new_int()
+
+// Master Sweep Creation
+create_sweep_label(bool is_high, string cat, string alert_msg) =>
+    label l = na
+    if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only 'x'")
+        l := label.new(bar_index, is_high ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=is_high ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+        
+        // Dynamic FIFO Limit Enforcement
+        if cat == "REQ"
+            array.push(track_req, l)
+            if array.size(track_req) > max_req_sweeps
+                label.delete(array.shift(track_req))
+        else if cat == "KZ_H"
+            array.push(track_kz_h, l)
+            if array.size(track_kz_h) > max_kz_sweeps
+                label.delete(array.shift(track_kz_h))
+        else if cat == "KZ_L"
+            array.push(track_kz_l, l)
+            if array.size(track_kz_l) > max_kz_sweeps
+                label.delete(array.shift(track_kz_l))
+        else if cat == "PDH"
+            array.push(track_pdh, l)
+            if array.size(track_pdh) > max_htf_sweeps
+                label.delete(array.shift(track_pdh))
+        else if cat == "PDL"
+            array.push(track_pdl, l)
+            if array.size(track_pdl) > max_htf_sweeps
+                label.delete(array.shift(track_pdl))
+        else if cat == "PWH"
+            array.push(track_pwh, l)
+            if array.size(track_pwh) > max_htf_sweeps
+                label.delete(array.shift(track_pwh))
+        else if cat == "PWL"
+            array.push(track_pwl, l)
+            if array.size(track_pwl) > max_htf_sweeps
+                label.delete(array.shift(track_pwl))
+        else if cat == "TDO"
+            array.push(track_tdo, l)
+            if array.size(track_tdo) > max_htf_sweeps
+                label.delete(array.shift(track_tdo))
+        else if cat == "4H"
+            array.push(track_4h, l)
+            if array.size(track_4h) > max_htf_sweeps
+                label.delete(array.shift(track_4h))
+        else if cat == "GAP"
+            array.push(track_gap, l)
+            if array.size(track_gap) > max_htf_sweeps
+                label.delete(array.shift(track_gap))
+
+    // Skip permanent barcolor baking ONLY for 4H (we will use a fake highlight instead)
+    if cat != "4H"
+        sweep_state.swept := true
+        sweep_state.t := time
+        
+    // Generate HUD Alert
+    if show_alert_hud
+        bool is_duplicate = false
+        if array.size(alert_msgs) > 0
+            for i = 0 to array.size(alert_msgs) - 1
+                if array.get(alert_msgs, i) == (alert_msg + " SWEPT") and array.get(alert_times, i) == time
+                    is_duplicate := true
+                    break
+        if not is_duplicate
+            array.unshift(alert_msgs, alert_msg + " SWEPT")
+            array.unshift(alert_times, time)
+    l
+
+push_intra_sweep(label lbl) =>
+    if not na(lbl)
+        array.push(intra_sweeps, TimedSweep.new("intra", lbl, time, 172800000))
+
+push_htf_sweep(string id, label lbl, int max_ms) =>
+    if not na(lbl)
+        array.push(htf_sweeps, TimedSweep.new(id, lbl, time, max_ms))
+
+// Routine Pruning for Sweeps strictly by age
+if array.size(intra_sweeps) > 0
+    for i = array.size(intra_sweeps) - 1 to 0
+        TimedSweep ts = array.get(intra_sweeps, i)
+        if (time - ts.t) > ts.max_ms
+            label.delete(ts.lbl)
+            array.remove(intra_sweeps, i)
+
+if array.size(htf_sweeps) > 0
+    for i = array.size(htf_sweeps) - 1 to 0
+        TimedSweep ts = array.get(htf_sweeps, i)
+        if (time - ts.t) > ts.max_ms
+            label.delete(ts.lbl)
+            array.remove(htf_sweeps, i)
 
 // ==========================================
-// MAX 2 SESSION MEMORY ENGINE (UDT)
+// MAX 2 SESSION MEMORY ENGINE (UDT) FOR KILLZONES ONLY
 // ==========================================
 type SessDrawings
     box[] b_arr
     line[] l_arr
+    label[] lbl_arr
 
 method push_b(SessDrawings[] hist, box b) =>
     if array.size(hist) > 0 and not na(b)
@@ -235,14 +413,20 @@ method push_l(SessDrawings[] hist, line l) =>
     if array.size(hist) > 0 and not na(l)
         array.push(array.get(hist, array.size(hist) - 1).l_arr, l)
 
+method push_lbl(SessDrawings[] hist, label lbl) =>
+    if array.size(hist) > 0 and not na(lbl)
+        array.push(array.get(hist, array.size(hist) - 1).lbl_arr, lbl)
+
 method new_sess(SessDrawings[] hist) =>
-    array.push(hist, SessDrawings.new(array.new_box(), array.new_line()))
+    array.push(hist, SessDrawings.new(array.new_box(), array.new_line(), array.new_label()))
     if array.size(hist) > 2
         SessDrawings old = array.shift(hist)
         for b in old.b_arr
             box.delete(b)
         for l in old.l_arr
             line.delete(l)
+        for lbl in old.lbl_arr
+            label.delete(lbl)
 
 var SessDrawings[] asia_hist = array.new<SessDrawings>()
 var SessDrawings[] lokz_hist = array.new<SessDrawings>()
@@ -280,8 +464,44 @@ bool end_nypm = in_nypm[1] and not in_nypm
 if new_nypm and tf_is_valid
     nypm_hist.new_sess()
 
+// Active KZ Tracking Helper
+int active_kz_idx = 0 
+if in_asia
+    active_kz_idx := 1
+else if in_lokz
+    active_kz_idx := 2
+else if in_nyam
+    active_kz_idx := 3
+else if in_nyl
+    active_kz_idx := 4
+else if in_nypm
+    active_kz_idx := 5
+
+// RESET SWEEP LIMITS ON SESSION CHANGE
+var int last_kz_tracker = 0
+if active_kz_idx != last_kz_tracker
+    array.clear(track_req)
+    array.clear(track_kz_h)
+    array.clear(track_kz_l)
+    last_kz_tracker := active_kz_idx
+
+push_kz_sweep(label lbl) =>
+    if not na(lbl)
+        if active_kz_idx == 1
+            asia_hist.push_lbl(lbl)
+        else if active_kz_idx == 2
+            lokz_hist.push_lbl(lbl)
+        else if active_kz_idx == 3
+            nyam_hist.push_lbl(lbl)
+        else if active_kz_idx == 4
+            nyl_hist.push_lbl(lbl)
+        else if active_kz_idx == 5
+            nypm_hist.push_lbl(lbl)
+        else
+            push_intra_sweep(lbl)
+
 // ==========================================
-// 10. KILLZONE BOX & LABEL CALCULATIONS
+// KILLZONE BOX & LABEL CALCULATIONS
 // ==========================================
 var float top_bottom = 0
 var color kz_color   = na
@@ -440,7 +660,7 @@ if barstate.islast and kz_filter and kz_style == "Label"
             preview_line := na, preview_box := na
 
 // ==========================================
-// 11. RANGE BOXES, EXTENSIONS, & SWEEPS
+// 11. RANGE BOXES, EXTENSIONS, & SWEEPS (KILLZONE BOUND)
 // ==========================================
 if tf_is_valid
     // --- ASIA ---
@@ -484,19 +704,19 @@ if tf_is_valid
             line.delete(asia_h), line.delete(asia_l)
             asia_draw_h := false, asia_draw_l := false
 
-    if asia_draw_h and not na(asia_h)
+    if is_short_tf and asia_draw_h and not na(asia_h) and show_asia_box
         line.set_x2(asia_h, bar_index)
         if high >= line.get_y1(asia_h)
             asia_draw_h := false 
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "KZ_H", "ASIA HIGH")
+            asia_hist.push_lbl(l)
 
-    if asia_draw_l and not na(asia_l)
+    if is_short_tf and asia_draw_l and not na(asia_l) and show_asia_box
         line.set_x2(asia_l, bar_index)
         if low <= line.get_y1(asia_l)
             asia_draw_l := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "KZ_L", "ASIA LOW")
+            asia_hist.push_lbl(l)
 
     // --- LONDON (LOKZ) ---
     var box lokz_b = na
@@ -539,19 +759,19 @@ if tf_is_valid
             line.delete(lokz_h), line.delete(lokz_l)
             lokz_draw_h := false, lokz_draw_l := false
 
-    if lokz_draw_h and not na(lokz_h)
+    if is_short_tf and lokz_draw_h and not na(lokz_h) and show_lokz_box
         line.set_x2(lokz_h, bar_index)
         if high >= line.get_y1(lokz_h)
             lokz_draw_h := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "KZ_H", "LOKZ HIGH")
+            lokz_hist.push_lbl(l)
 
-    if lokz_draw_l and not na(lokz_l)
+    if is_short_tf and lokz_draw_l and not na(lokz_l) and show_lokz_box
         line.set_x2(lokz_l, bar_index)
         if low <= line.get_y1(lokz_l)
             lokz_draw_l := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "KZ_L", "LOKZ LOW")
+            lokz_hist.push_lbl(l)
 
     // --- NY AM ---
     var box nyam_b = na
@@ -594,19 +814,19 @@ if tf_is_valid
             line.delete(nyam_h), line.delete(nyam_l)
             nyam_draw_h := false, nyam_draw_l := false
 
-    if nyam_draw_h and not na(nyam_h)
+    if is_short_tf and nyam_draw_h and not na(nyam_h) and show_nyam_box
         line.set_x2(nyam_h, bar_index)
         if high >= line.get_y1(nyam_h)
             nyam_draw_h := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "KZ_H", "NY AM HIGH")
+            nyam_hist.push_lbl(l)
 
-    if nyam_draw_l and not na(nyam_l)
+    if is_short_tf and nyam_draw_l and not na(nyam_l) and show_nyam_box
         line.set_x2(nyam_l, bar_index)
         if low <= line.get_y1(nyam_l)
             nyam_draw_l := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "KZ_L", "NY AM LOW")
+            nyam_hist.push_lbl(l)
 
     // --- NY LUNCH ---
     var box nyl_b = na
@@ -649,19 +869,19 @@ if tf_is_valid
             line.delete(nyl_h), line.delete(nyl_l)
             nyl_draw_h := false, nyl_draw_l := false
 
-    if nyl_draw_h and not na(nyl_h)
+    if is_short_tf and nyl_draw_h and not na(nyl_h) and show_nyl_box
         line.set_x2(nyl_h, bar_index)
         if high >= line.get_y1(nyl_h)
             nyl_draw_h := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "KZ_H", "NY LUNCH HIGH")
+            nyl_hist.push_lbl(l)
 
-    if nyl_draw_l and not na(nyl_l)
+    if is_short_tf and nyl_draw_l and not na(nyl_l) and show_nyl_box
         line.set_x2(nyl_l, bar_index)
         if low <= line.get_y1(nyl_l)
             nyl_draw_l := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "KZ_L", "NY LUNCH LOW")
+            nyl_hist.push_lbl(l)
 
     // --- NY PM ---
     var box nypm_b = na
@@ -704,22 +924,233 @@ if tf_is_valid
             line.delete(nypm_h), line.delete(nypm_l)
             nypm_draw_h := false, nypm_draw_l := false
 
-    if nypm_draw_h and not na(nypm_h)
+    if is_short_tf and nypm_draw_h and not na(nypm_h) and show_nypm_box
         line.set_x2(nypm_h, bar_index)
         if high >= line.get_y1(nypm_h)
             nypm_draw_h := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "KZ_H", "NY PM HIGH")
+            nypm_hist.push_lbl(l)
 
-    if nypm_draw_l and not na(nypm_l)
+    if is_short_tf and nypm_draw_l and not na(nypm_l) and show_nypm_box
         line.set_x2(nypm_l, bar_index)
         if low <= line.get_y1(nypm_l)
             nypm_draw_l := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "KZ_L", "NY PM LOW")
+            nypm_hist.push_lbl(l)
 
 // ==========================================
-// 12. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
+// 12. RELATIVE EQUAL HIGHS & LOWS (REQH / REQL) DIRECT WICK-TO-WICK ENGINE
+// ==========================================
+float dyn_eq_tolerance = eq_tol_ltf
+int dyn_max_age = 172800000 // 2 Days default for LTF
+
+if timeframe.isdaily or timeframe.isweekly or timeframe.ismonthly
+    dyn_eq_tolerance := eq_tol_dtf
+    dyn_max_age := 2592000000 // 1 Month
+else if timeframe.isintraday and tf_curr_min >= 15
+    dyn_eq_tolerance := eq_tol_htf
+    dyn_max_age := 604800000 // 1 Week lifespan
+
+int lookback_bars = math.max(10, math.round(eq_lookback_mins / math.max(tf_curr_min, 1)))
+
+type EQLineWick
+    line l
+    label lbl
+    float price_sweep
+    bool is_high
+    int start_time
+    int end_bar
+    bool is_swept
+    int kz_id // Tracks which Killzone originated the level
+
+var EQLineWick[] req_array = array.new<EQLineWick>()
+
+float ph = ta.pivothigh(high, 2, 2)
+float pl = ta.pivotlow(low, 2, 2)
+
+if tf_is_valid
+    // Detect REQH
+    if show_reqh and not na(ph)
+        int match_idx = na
+        float match_val = na
+        
+        for i = 4 to lookback_bars
+            if bar_index - i >= 0
+                float past_h = high[i]
+                bool is_local_peak = high[i] >= high[i+1] and high[i] >= high[i-1]
+                
+                if not na(past_h) and is_local_peak and math.abs(ph - past_h) <= dyn_eq_tolerance
+                    bool intermediate_filled = false
+                    for j = 3 to i - 1
+                        if high[j] > math.max(ph, past_h)
+                            intermediate_filled := true
+                            break
+                    
+                    if not intermediate_filled
+                        match_idx := bar_index - i
+                        match_val := past_h
+                        break
+
+        bool level_exists = false
+        if array.size(req_array) > 0
+            for k = 0 to array.size(req_array) - 1
+                EQLineWick active_eq = array.get(req_array, k)
+                if active_eq.is_high and not active_eq.is_swept and math.abs(active_eq.price_sweep - ph) <= dyn_eq_tolerance
+                    level_exists := true
+                    break
+        
+        bool allow_creation = true
+        if timeframe.isintraday and tf_curr_min < 15 and not in_kz
+            allow_creation := false
+
+        if not na(match_idx) and not level_exists and allow_creation
+            int x1 = match_idx
+            int x2 = bar_index - 2
+            float y1 = match_val
+            float y2 = ph
+            float sweep_target = math.max(y1, y2)
+            
+            line l_diag = line.new(x1, y1, x2, y2, color=color.new(reqh_color, eq_transp), style=eq_line_style, width=eq_line_width)
+            int lbl_x = eq_halign_str == "Center" ? math.round((x1 + x2) / 2) : (eq_halign_str == "Right" ? x2 : x1)
+            float lbl_y = eq_valign_str == "Middle" ? (y1 + y2) / 2 : (eq_valign_str == "Bottom" ? math.min(y1, y2) : math.max(y1, y2))
+            label lbl_eq = label.new(lbl_x, lbl_y, "reqh", color=color.new(color.white, 100), textcolor=eq_txt_color, style=get_eq_label_style(eq_valign_str), size=eq_text_size)
+            
+            int current_kz = active_kz_idx
+            array.push(req_array, EQLineWick.new(l_diag, lbl_eq, sweep_target, true, time, x2, false, current_kz))
+            
+            if timeframe.isintraday and tf_curr_min < 15
+                if current_kz == 1
+                    asia_hist.push_l(l_diag), asia_hist.push_lbl(lbl_eq)
+                else if current_kz == 2
+                    lokz_hist.push_l(l_diag), lokz_hist.push_lbl(lbl_eq)
+                else if current_kz == 3
+                    nyam_hist.push_l(l_diag), nyam_hist.push_lbl(lbl_eq)
+                else if current_kz == 4
+                    nyl_hist.push_l(l_diag), nyl_hist.push_lbl(lbl_eq)
+                else if current_kz == 5
+                    nypm_hist.push_l(l_diag), nypm_hist.push_lbl(lbl_eq)
+
+    // Detect REQL
+    if show_reql and not na(pl)
+        int match_l_idx = na
+        float match_l_val = na
+        
+        for i = 4 to lookback_bars
+            if bar_index - i >= 0
+                float past_l = low[i]
+                bool is_local_valley = low[i] <= low[i+1] and low[i] <= low[i-1]
+                
+                if not na(past_l) and is_local_valley and math.abs(pl - past_l) <= dyn_eq_tolerance
+                    bool intermediate_filled = false
+                    for j = 3 to i - 1
+                        if low[j] < math.min(pl, past_l)
+                            intermediate_filled := true
+                            break
+                    
+                    if not intermediate_filled
+                        match_l_idx := bar_index - i
+                        match_l_val := past_l
+                        break
+
+        bool level_l_exists = false
+        if array.size(req_array) > 0
+            for k = 0 to array.size(req_array) - 1
+                EQLineWick active_eq = array.get(req_array, k)
+                if not active_eq.is_high and not active_eq.is_swept and math.abs(active_eq.price_sweep - pl) <= dyn_eq_tolerance
+                    level_l_exists := true
+                    break
+
+        bool allow_creation = true
+        if timeframe.isintraday and tf_curr_min < 15 and not in_kz
+            allow_creation := false
+
+        if not na(match_l_idx) and not level_l_exists and allow_creation
+            int x1 = match_l_idx
+            int x2 = bar_index - 2
+            float y1 = match_l_val
+            float y2 = pl
+            float sweep_target = math.min(y1, y2)
+            
+            line l_diag = line.new(x1, y1, x2, y2, color=color.new(reql_color, eq_transp), style=eq_line_style, width=eq_line_width)
+            int lbl_x = eq_halign_str == "Center" ? math.round((x1 + x2) / 2) : (eq_halign_str == "Right" ? x2 : x1)
+            float lbl_y = eq_valign_str == "Middle" ? (y1 + y2) / 2 : (eq_valign_str == "Top" ? math.max(y1, y2) : math.min(y1, y2))
+            label lbl_eq = label.new(lbl_x, lbl_y, "reql", color=color.new(color.white, 100), textcolor=eq_txt_color, style=get_eq_label_style(eq_valign_str), size=eq_text_size)
+            
+            int current_kz = active_kz_idx
+            array.push(req_array, EQLineWick.new(l_diag, lbl_eq, sweep_target, false, time, x2, false, current_kz))
+            
+            if timeframe.isintraday and tf_curr_min < 15
+                if current_kz == 1
+                    asia_hist.push_l(l_diag), asia_hist.push_lbl(lbl_eq)
+                else if current_kz == 2
+                    lokz_hist.push_l(l_diag), lokz_hist.push_lbl(lbl_eq)
+                else if current_kz == 3
+                    nyam_hist.push_l(l_diag), nyam_hist.push_lbl(lbl_eq)
+                else if current_kz == 4
+                    nyl_hist.push_l(l_diag), nyl_hist.push_lbl(lbl_eq)
+                else if current_kz == 5
+                    nypm_hist.push_l(l_diag), nypm_hist.push_lbl(lbl_eq)
+
+    // Sweep management & Pruning
+    if array.size(req_array) > 0
+        for i = array.size(req_array) - 1 to 0
+            EQLineWick eq = array.get(req_array, i)
+            
+            if (time - eq.start_time) > dyn_max_age
+                line.delete(eq.l)
+                label.delete(eq.lbl)
+                array.remove(req_array, i)
+            else if not eq.is_swept and bar_index > eq.end_bar
+                if eq.is_high and high >= eq.price_sweep
+                    eq.is_swept := true
+                    label l = create_sweep_label(true, "REQ", "REQH")
+                    
+                    if timeframe.isintraday and tf_curr_min < 15
+                        if eq.kz_id == 1
+                            asia_hist.push_lbl(l)
+                        else if eq.kz_id == 2
+                            lokz_hist.push_lbl(l)
+                        else if eq.kz_id == 3
+                            nyam_hist.push_lbl(l)
+                        else if eq.kz_id == 4
+                            nyl_hist.push_lbl(l)
+                        else if eq.kz_id == 5
+                            nypm_hist.push_lbl(l)
+                        else
+                            push_intra_sweep(l)
+                    else
+                        push_htf_sweep("REQH_SWP", l, dyn_max_age)
+                        
+                    line.delete(eq.l)
+                    label.delete(eq.lbl)
+                    array.remove(req_array, i)
+                        
+                else if not eq.is_high and low <= eq.price_sweep
+                    eq.is_swept := true
+                    label l = create_sweep_label(false, "REQ", "REQL")
+                    
+                    if timeframe.isintraday and tf_curr_min < 15
+                        if eq.kz_id == 1
+                            asia_hist.push_lbl(l)
+                        else if eq.kz_id == 2
+                            lokz_hist.push_lbl(l)
+                        else if eq.kz_id == 3
+                            nyam_hist.push_lbl(l)
+                        else if eq.kz_id == 4
+                            nyl_hist.push_lbl(l)
+                        else if eq.kz_id == 5
+                            nypm_hist.push_lbl(l)
+                        else
+                            push_intra_sweep(l)
+                    else
+                        push_htf_sweep("REQL_SWP", l, dyn_max_age)
+                        
+                    line.delete(eq.l)
+                    label.delete(eq.lbl)
+                    array.remove(req_array, i)
+
+// ==========================================
+// 13. TRUE DAY OPEN (MAX 2 DISPLAYED) & 9:30 VERTICAL
 // ==========================================
 var line tdo_l1 = na
 var label tdo_lbl1 = na
@@ -759,6 +1190,8 @@ if tf_is_valid
         if not trigger_midnight and past_830
             if high >= tdo_price and low <= tdo_price
                 tdo_active := false
+                label l = create_sweep_label(high >= tdo_price, "TDO", "TDO")
+                push_htf_sweep("TDO", l, 172800000)
 
     var line daily_open = na
     if trigger_midnight and show_daily
@@ -803,7 +1236,7 @@ if tf_is_valid and show_930_line and barstate.islast
         line.set_width(upcoming_930_line, line_930_width)
 
 // ==========================================
-// 13. HTF HIGH / LOW (PDH, PDL, PWH, PWL) & SWEEPS
+// 14. HTF HIGH / LOW (PDH, PDL, PWH, PWL) & SWEEPS
 // ==========================================
 [pd_high, pd_low] = request.security(syminfo.tickerid, "D", [high[1], low[1]], lookahead = barmerge.lookahead_on)
 [pw_high, pw_low] = request.security(syminfo.tickerid, "W", [high[1], low[1]], lookahead = barmerge.lookahead_on)
@@ -840,44 +1273,44 @@ if tf_is_valid
             pwl_lbl := show_hl_labels ? label.new(bar_index + 1, pw_low, "PWL", color = color.new(color.white, 100), textcolor = pwl_color, style = label.style_label_left, size = size.tiny) : na
             pwl_act := true
 
-    if pdh_act and not na(pdh_l)
+    if pdh_act and not na(pdh_l) and show_pdh
         line.set_x2(pdh_l, bar_index + 1)
         if not na(pdh_lbl)
             label.set_x(pdh_lbl, bar_index + 1)
         if high >= line.get_y1(pdh_l)
             pdh_act := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "PDH", "PDH")
+            push_htf_sweep("PDH", l, 172800000)
 
-    if pdl_act and not na(pdl_l)
+    if pdl_act and not na(pdl_l) and show_pdl
         line.set_x2(pdl_l, bar_index + 1)
         if not na(pdl_lbl)
             label.set_x(pdl_lbl, bar_index + 1)
         if low <= line.get_y1(pdl_l)
             pdl_act := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "PDL", "PDL")
+            push_htf_sweep("PDL", l, 172800000)
 
-    if pwh_act and not na(pwh_l)
+    if pwh_act and not na(pwh_l) and show_pwh
         line.set_x2(pwh_l, bar_index + 1)
         if not na(pwh_lbl)
             label.set_x(pwh_lbl, bar_index + 1)
         if high >= line.get_y1(pwh_l)
             pwh_act := false
-            if show_sweeps
-                label.new(bar_index, high, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_down, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(true, "PWH", "PWH")
+            push_htf_sweep("PWH", l, 1209600000)
 
-    if pwl_act and not na(pwl_l)
+    if pwl_act and not na(pwl_l) and show_pwl
         line.set_x2(pwl_l, bar_index + 1)
         if not na(pwl_lbl)
             label.set_x(pwl_lbl, bar_index + 1)
         if low <= line.get_y1(pwl_l)
             pwl_act := false
-            if show_sweeps
-                label.new(bar_index, low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=label.style_label_up, size=get_text_size(sweep_sz_str))
+            label l = create_sweep_label(false, "PWL", "PWL")
+            push_htf_sweep("PWL", l, 1209600000)
 
 // ==========================================
-// 14. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
+// 15. OPENING GAPS (NDOG & NWOG: ACCURATE INTERSECTION FILL CHECK)
 // ==========================================
 var box ndog_b = na, var bool ndog_act = false, var float ndog_target = na, var bool ndog_up = false
 var box nwog_b = na, var bool nwog_act = false, var float nwog_target = na, var bool nwog_up = false
@@ -904,36 +1337,44 @@ if tf_gap_valid
             ndog_target := prev_close
             ndog_up := open > prev_close
 
-    if ndog_act and not na(ndog_b)
+    if ndog_act and not na(ndog_b) and show_ndog
         box.set_right(ndog_b, bar_index + 1)
         if ndog_up and low <= ndog_target
             ndog_act := false
+            label l = create_sweep_label(false, "GAP", "NDOG")
+            push_htf_sweep("NDOG", l, 172800000)
         else if not ndog_up and high >= ndog_target
             ndog_act := false
+            label l = create_sweep_label(true, "GAP", "NDOG")
+            push_htf_sweep("NDOG", l, 172800000)
 
-    if nwog_act and not na(nwog_b)
+    if nwog_act and not na(nwog_b) and show_nwog
         box.set_right(nwog_b, bar_index + 1)
         if nwog_up and low <= nwog_target
             nwog_act := false
+            label l = create_sweep_label(false, "GAP", "NWOG")
+            push_htf_sweep("NWOG", l, 1209600000)
         else if not nwog_up and high >= nwog_target
             nwog_act := false
+            label l = create_sweep_label(true, "GAP", "NWOG")
+            push_htf_sweep("NWOG", l, 1209600000)
 
 // ==========================================
-// 15. 4-HOUR OPENING PRICE LINES (CUSTOM MINUTE BUFFER & SWEEPS)
+// 16. 4-HOUR OPENING PRICE LINES (CUSTOM MINUTE BUFFER & ERASABLE HIGHLIGHTS)
 // ==========================================
-var line l_h4_1800 = na, var label lbl_h4_1800 = na, var float p_h4_1800 = na, var bool act_h4_1800 = false, var int bar_h4_1800 = na
-var line l_h4_2200 = na, var label lbl_h4_2200 = na, var float p_h4_2200 = na, var bool act_h4_2200 = false, var int bar_h4_2200 = na
-var line l_h4_0200 = na, var label lbl_h4_0200 = na, var float p_h4_0200 = na, var bool act_h4_0200 = false, var int bar_h4_0200 = na
-var line l_h4_0600 = na, var label lbl_h4_0600 = na, var float p_h4_0600 = na, var bool act_h4_0600 = false, var int bar_h4_0600 = na
-var line l_h4_1000 = na, var label lbl_h4_1000 = na, var float p_h4_1000 = na, var bool act_h4_1000 = false, var int bar_h4_1000 = na
-var line l_h4_1400 = na, var label lbl_h4_1400 = na, var float p_h4_1400 = na, var bool act_h4_1400 = false, var int bar_h4_1400 = na
+var line l_h4_1800 = na, var label lbl_h4_1800 = na, var label swp_h4_1800 = na, var line clr_h4_1800 = na, var float p_h4_1800 = na, var bool act_h4_1800 = false, var int bar_h4_1800 = na
+var line l_h4_2200 = na, var label lbl_h4_2200 = na, var label swp_h4_2200 = na, var line clr_h4_2200 = na, var float p_h4_2200 = na, var bool act_h4_2200 = false, var int bar_h4_2200 = na
+var line l_h4_0200 = na, var label lbl_h4_0200 = na, var label swp_h4_0200 = na, var line clr_h4_0200 = na, var float p_h4_0200 = na, var bool act_h4_0200 = false, var int bar_h4_0200 = na
+var line l_h4_0600 = na, var label lbl_h4_0600 = na, var label swp_h4_0600 = na, var line clr_h4_0600 = na, var float p_h4_0600 = na, var bool act_h4_0600 = false, var int bar_h4_0600 = na
+var line l_h4_1000 = na, var label lbl_h4_1000 = na, var label swp_h4_1000 = na, var line clr_h4_1000 = na, var float p_h4_1000 = na, var bool act_h4_1000 = false, var int bar_h4_1000 = na
+var line l_h4_1400 = na, var label lbl_h4_1400 = na, var label swp_h4_1400 = na, var line clr_h4_1400 = na, var float p_h4_1400 = na, var bool act_h4_1400 = false, var int bar_h4_1400 = na
 
 if tf_is_valid and show_4h_opens
     // 18:00 (6:00 PM)
     bool s_1800 = not na(time(timeframe.period, session = "1800-1801", timezone = "America/New_York"))
     if s_1800 and not s_1800[1] and show_h4_1800
-        line.delete(l_h4_0600), label.delete(lbl_h4_0600)
-        line.delete(l_h4_1800), label.delete(lbl_h4_1800)
+        line.delete(l_h4_0600), label.delete(lbl_h4_0600), label.delete(swp_h4_0600), line.delete(clr_h4_0600)
+        line.delete(l_h4_1800), label.delete(lbl_h4_1800), label.delete(swp_h4_1800), line.delete(clr_h4_1800)
         l_h4_1800   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1800 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_1800   := open
@@ -943,8 +1384,8 @@ if tf_is_valid and show_4h_opens
     // 22:00 (10:00 PM)
     bool s_2200 = not na(time(timeframe.period, session = "2200-2201", timezone = "America/New_York"))
     if s_2200 and not s_2200[1] and show_h4_2200
-        line.delete(l_h4_1000), label.delete(lbl_h4_1000)
-        line.delete(l_h4_2200), label.delete(lbl_h4_2200)
+        line.delete(l_h4_1000), label.delete(lbl_h4_1000), label.delete(swp_h4_1000), line.delete(clr_h4_1000)
+        line.delete(l_h4_2200), label.delete(lbl_h4_2200), label.delete(swp_h4_2200), line.delete(clr_h4_2200)
         l_h4_2200   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_2200 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_2200   := open
@@ -954,8 +1395,8 @@ if tf_is_valid and show_4h_opens
     // 02:00 (2:00 AM)
     bool s_0200 = not na(time(timeframe.period, session = "0200-0201", timezone = "America/New_York"))
     if s_0200 and not s_0200[1] and show_h4_0200
-        line.delete(l_h4_1400), label.delete(lbl_h4_1400)
-        line.delete(l_h4_0200), label.delete(lbl_h4_0200)
+        line.delete(l_h4_1400), label.delete(lbl_h4_1400), label.delete(swp_h4_1400), line.delete(clr_h4_1400)
+        line.delete(l_h4_0200), label.delete(lbl_h4_0200), label.delete(swp_h4_0200), line.delete(clr_h4_0200)
         l_h4_0200   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0200 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_0200   := open
@@ -965,8 +1406,8 @@ if tf_is_valid and show_4h_opens
     // 06:00 (6:00 AM)
     bool s_0600 = not na(time(timeframe.period, session = "0600-0601", timezone = "America/New_York"))
     if s_0600 and not s_0600[1] and show_h4_0600
-        line.delete(l_h4_1800), label.delete(lbl_h4_1800)
-        line.delete(l_h4_0600), label.delete(lbl_h4_0600)
+        line.delete(l_h4_1800), label.delete(lbl_h4_1800), label.delete(swp_h4_1800), line.delete(clr_h4_1800)
+        line.delete(l_h4_0600), label.delete(lbl_h4_0600), label.delete(swp_h4_0600), line.delete(clr_h4_0600)
         l_h4_0600   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0600 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_0600   := open
@@ -976,8 +1417,8 @@ if tf_is_valid and show_4h_opens
     // 10:00 (10:00 AM)
     bool s_1000 = not na(time(timeframe.period, session = "1000-1001", timezone = "America/New_York"))
     if s_1000 and not s_1000[1] and show_h4_1000
-        line.delete(l_h4_2200), label.delete(lbl_h4_2200)
-        line.delete(l_h4_1000), label.delete(lbl_h4_1000)
+        line.delete(l_h4_2200), label.delete(lbl_h4_2200), label.delete(swp_h4_2200), line.delete(clr_h4_2200)
+        line.delete(l_h4_1000), label.delete(lbl_h4_1000), label.delete(swp_h4_1000), line.delete(clr_h4_1000)
         l_h4_1000   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1000 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_1000   := open
@@ -987,8 +1428,8 @@ if tf_is_valid and show_4h_opens
     // 14:00 (2:00 PM)
     bool s_1400 = not na(time(timeframe.period, session = "1400-1401", timezone = "America/New_York"))
     if s_1400 and not s_1400[1] and show_h4_1400
-        line.delete(l_h4_0200), label.delete(lbl_h4_0200)
-        line.delete(l_h4_1400), label.delete(lbl_h4_1400)
+        line.delete(l_h4_0200), label.delete(lbl_h4_0200), label.delete(swp_h4_0200), line.delete(clr_h4_0200)
+        line.delete(l_h4_1400), label.delete(lbl_h4_1400), label.delete(swp_h4_1400), line.delete(clr_h4_1400)
         l_h4_1400   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1400 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
         p_h4_1400   := open
@@ -1003,8 +1444,9 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_1800, bar_index + 1)
             if buf_h4_1800 > 0 and (time - bar_h4_1800) >= (buf_h4_1800 * 60000) and (high >= p_h4_1800 and low <= p_h4_1800)
                 act_h4_1800 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_1800 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1800 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_1800 := create_sweep_label(high >= p_h4_1800, "4H", "6:00 PM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_1800 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
     // 22:00 (10:00 PM) Buffer & Sweep Check
     if not na(l_h4_2200)
@@ -1014,8 +1456,9 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_2200, bar_index + 1)
             if buf_h4_2200 > 0 and (time - bar_h4_2200) >= (buf_h4_2200 * 60000) and (high >= p_h4_2200 and low <= p_h4_2200)
                 act_h4_2200 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_2200 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_2200 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_2200 := create_sweep_label(high >= p_h4_2200, "4H", "10:00 PM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_2200 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
     // 02:00 (2:00 AM) Buffer & Sweep Check
     if not na(l_h4_0200)
@@ -1025,8 +1468,9 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_0200, bar_index + 1)
             if buf_h4_0200 > 0 and (time - bar_h4_0200) >= (buf_h4_0200 * 60000) and (high >= p_h4_0200 and low <= p_h4_0200)
                 act_h4_0200 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_0200 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_0200 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_0200 := create_sweep_label(high >= p_h4_0200, "4H", "2:00 AM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_0200 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
     // 06:00 (6:00 AM) Buffer & Sweep Check
     if not na(l_h4_0600)
@@ -1036,8 +1480,9 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_0600, bar_index + 1)
             if buf_h4_0600 > 0 and (time - bar_h4_0600) >= (buf_h4_0600 * 60000) and (high >= p_h4_0600 and low <= p_h4_0600)
                 act_h4_0600 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_0600 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_0600 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_0600 := create_sweep_label(high >= p_h4_0600, "4H", "6:00 AM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_0600 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
     // 10:00 (10:00 AM) Buffer & Sweep Check
     if not na(l_h4_1000)
@@ -1047,8 +1492,9 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_1000, bar_index + 1)
             if buf_h4_1000 > 0 and (time - bar_h4_1000) >= (buf_h4_1000 * 60000) and (high >= p_h4_1000 and low <= p_h4_1000)
                 act_h4_1000 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_1000 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1000 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_1000 := create_sweep_label(high >= p_h4_1000, "4H", "10:00 AM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_1000 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
     // 14:00 (2:00 PM) Buffer & Sweep Check
     if not na(l_h4_1400)
@@ -1058,22 +1504,39 @@ if tf_is_valid and show_4h_opens
                 label.set_x(lbl_h4_1400, bar_index + 1)
             if buf_h4_1400 > 0 and (time - bar_h4_1400) >= (buf_h4_1400 * 60000) and (high >= p_h4_1400 and low <= p_h4_1400)
                 act_h4_1400 := false
-                if show_sweeps
-                    label.new(bar_index, high >= p_h4_1400 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1400 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+                swp_h4_1400 := create_sweep_label(high >= p_h4_1400, "4H", "2:00 PM 4H")
+                if show_sweeps and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+                    clr_h4_1400 := line.new(bar_index, high, bar_index, low, color=color.new(sweep_color, 40), width=4)
 
-plotchar(tf_is_valid and top_bottom == 1 and in_kz, "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
-plotchar(tf_is_valid and top_bottom == 2 and in_kz, "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
-
-// ==========================================
-// 16. UI ENGINE (RISK CALC & WATERMARK & MACROS)
-// ==========================================
+// =============================================================================
+// 17. UI ENGINE (RISK CALC, WATERMARK, MACROS & ALERT HUD)
+// =============================================================================
 if barstate.islast
     int min_ny = minute(time, "America/New_York")
-    bool is_macro_time = (min_ny >= 45 or min_ny < 15) and show_macro
+    // MACRO active last 15 mins of hour (45-59) to first 15 mins of new hour (00-15)
+    bool is_macro_time = (min_ny >= 45 or min_ny <= 15) and show_macro
+    
+    // Prune old HUD alerts natively
+    if array.size(alert_times) > 0
+        for i = array.size(alert_times) - 1 to 0
+            if (time - array.get(alert_times, i)) > (alert_duration * 60000)
+                array.remove(alert_times, i)
+                array.remove(alert_msgs, i)
+                
+    bool has_alerts = array.size(alert_msgs) > 0
+    int num_alerts = has_alerts ? math.min(array.size(alert_msgs), 3) : 0
 
     // -- Position Size Calculator Render --
     if show_calc
-        int c_rows = is_macro_time and macro_attach == "Position Size Calculator" ? 3 : 2
+        bool calc_has_macro = is_macro_time and macro_attach == "Position Size Calculator"
+        bool calc_has_alerts = has_alerts and alert_attach == "Position Size Calculator"
+        
+        int c_rows = 2
+        if calc_has_macro
+            c_rows += 1
+        if calc_has_alerts
+            c_rows += num_alerts
+            
         table r_tbl = table.new(get_tbl_pos(calc_pos_str), 1, c_rows, bgcolor=color.new(color.black, calc_bg_transp), border_color=color.new(color.white, 95), border_width=1)
         
         float point_val = syminfo.pointvalue
@@ -1082,29 +1545,57 @@ if barstate.islast
         string header_txt = "RISK: $" + str.tostring(risk_usd) + " | SL: " + str.tostring(sl_points) + " pts"
         string qty_txt = str.tostring(qty, "#.##") + "x " + syminfo.root
 
-        bool calc_is_top = calc_pos_str == "Top Right" or calc_pos_str == "Top Left"
-        bool calc_has_macro = is_macro_time and macro_attach == "Position Size Calculator"
-
-        int c_r0 = calc_is_top ? 0 : (calc_has_macro ? 1 : 0)
-        int c_r1 = calc_is_top ? 1 : (calc_has_macro ? 2 : 1)
-        int c_rmac = calc_is_top ? 2 : 0
-
-        table.cell(r_tbl, 0, c_r0, header_txt, text_color=color.gray, text_size=size.tiny, text_halign=text.align_center)
-        table.cell(r_tbl, 0, c_r1, qty_txt, text_color=color.white, text_size=size.normal, text_halign=text.align_center)
+        // Dynamic flipping logic for elements based on anchor position
+        bool is_top = (calc_pos_str == "Top Right" or calc_pos_str == "Top Left")
+        int r_hdr = na
+        int r_qty = na
+        int r_mac = na
+        int r_alt_start = na
         
+        if is_top
+            r_hdr := 0
+            r_qty := 1
+            int c_row = 2
+            if calc_has_macro
+                r_mac := c_row
+                c_row += 1
+            if calc_has_alerts
+                r_alt_start := c_row
+        else
+            int c_row = 0
+            if calc_has_alerts
+                r_alt_start := c_row
+                c_row += num_alerts
+            if calc_has_macro
+                r_mac := c_row
+                c_row += 1
+            r_hdr := c_row
+            r_qty := c_row + 1
+
+        table.cell(r_tbl, 0, r_hdr, header_txt, text_color=color.gray, text_size=size.tiny, text_halign=text.align_center)
+        table.cell(r_tbl, 0, r_qty, qty_txt, text_color=color.white, text_size=size.normal, text_halign=text.align_center)
+        
+        if calc_has_alerts
+            for i = 0 to num_alerts - 1
+                table.cell(r_tbl, 0, r_alt_start + i, array.get(alert_msgs, i), text_color=alert_color, text_size=size.small, text_halign=text.align_center)
+                
         if calc_has_macro
-            table.cell(r_tbl, 0, c_rmac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
+            table.cell(r_tbl, 0, r_mac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
 
     // -- Custom Watermark Render --
     if show_wm
-        int w_rows = is_macro_time and macro_attach == "Watermark" ? 3 : 2
+        bool wm_has_macro = is_macro_time and macro_attach == "Watermark"
+        bool wm_has_alerts = has_alerts and alert_attach == "Watermark"
+        bool t_above = wm_order == "Title Above Subtitle"
+        
+        int w_rows = 2
+        if wm_has_macro
+            w_rows += 1
+        if wm_has_alerts
+            w_rows += num_alerts
+            
         table w_tbl = table.new(get_tbl_pos(wm_pos), 1, w_rows, bgcolor=color.new(color.black, 100))
         
-        bool wm_is_top = wm_pos == "Top Right" or wm_pos == "Top Left"
-        bool wm_has_macro = is_macro_time and macro_attach == "Watermark"
-        bool t_above = wm_order == "Title Above Subtitle"
-
-        // Build spacing string dynamically
         string spacing_str = ""
         if wm_spacing > 0
             for i = 1 to wm_spacing
@@ -1118,12 +1609,56 @@ if barstate.islast
         color  t2_col = t_above ? wm_color_sub : wm_color_title
         string t2_sz  = t_above ? wm_sz_sub_str : wm_sz_title_str
 
-        int w_r0 = wm_is_top ? 0 : (wm_has_macro ? 1 : 0)
-        int w_r1 = wm_is_top ? 1 : (wm_has_macro ? 2 : 1)
-        int w_rmac = wm_is_top ? 2 : 0
-
-        table.cell(w_tbl, 0, w_r0, t1_txt, text_color=t1_col, text_size=get_text_size(t1_sz), text_halign=text.align_center)
-        table.cell(w_tbl, 0, w_r1, t2_txt, text_color=t2_col, text_size=get_text_size(t2_sz), text_halign=text.align_center)
+        bool wm_is_top = (wm_pos == "Top Right" or wm_pos == "Top Left")
+        int w_t1 = na
+        int w_t2 = na
+        int w_mac = na
+        int w_alt = na
         
+        if wm_is_top
+            w_t1 := 0
+            w_t2 := 1
+            int c_row = 2
+            if wm_has_macro
+                w_mac := c_row
+                c_row += 1
+            if wm_has_alerts
+                w_alt := c_row
+        else
+            int c_row = 0
+            if wm_has_alerts
+                w_alt := c_row
+                c_row += num_alerts
+            if wm_has_macro
+                w_mac := c_row
+                c_row += 1
+            w_t1 := c_row
+            w_t2 := c_row + 1
+
+        table.cell(w_tbl, 0, w_t1, t1_txt, text_color=t1_col, text_size=get_text_size(t1_sz), text_halign=text.align_center)
+        table.cell(w_tbl, 0, w_t2, t2_txt, text_color=t2_col, text_size=get_text_size(t2_sz), text_halign=text.align_center)
+        
+        if wm_has_alerts
+            for i = 0 to num_alerts - 1
+                table.cell(w_tbl, 0, w_alt + i, array.get(alert_msgs, i), text_color=alert_color, text_size=size.small, text_halign=text.align_center)
+                
         if wm_has_macro
-            table.cell(w_tbl, 0, w_rmac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
+            table.cell(w_tbl, 0, w_mac, "MACRO", text_color=macro_color, text_size=get_text_size(macro_sz_str), text_halign=text.align_center)
+
+    // -- Standalone Alerts HUD Render --
+    if show_alert_hud and alert_attach == "Standalone HUD" and has_alerts
+        table alt_tbl = table.new(get_tbl_pos(alert_pos), 1, num_alerts, bgcolor=alert_bg, border_color=color.new(color.white, 95), border_width=1)
+        for i = 0 to num_alerts - 1
+            table.cell(alt_tbl, 0, i, array.get(alert_msgs, i), text_color=alert_color, text_size=size.small, text_halign=text.align_center)
+            
+// =============================================================================
+// 18. MASTER CANDLE COLORING ENGINE (MUST BE AT ABSOLUTE BOTTOM)
+// =============================================================================
+bool tf_candle_allowed = sweep_candle_max_tf == 0 or (timeframe.isintraday and tf_curr_min <= sweep_candle_max_tf)
+bool can_color_candle  = show_sweeps and tf_candle_allowed and (sweep_mode == "Both ('x' and Candle Color)" or sweep_mode == "Only Candle Color")
+
+// Check if a sweep occurred exactly on this bar OR if the fade timer is still active
+bool is_sweep_bar = sweep_state.swept
+bool is_fading    = c_fade_mins > 0 and sweep_state.t > 0 and (time - sweep_state.t) < (c_fade_mins * 60000)
+
+barcolor(can_color_candle and (is_sweep_bar or is_fading) ? sweep_color : na)
