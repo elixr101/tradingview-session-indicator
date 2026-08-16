@@ -1,27 +1,27 @@
 //@version=5
-indicator("Killzones @sxdmvn (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
+indicator("Killzones @sxdmvn/@vocurit (Fully Customizable)", overlay = true, max_lines_count = 500, max_boxes_count = 500, max_labels_count = 500)
 
 // =============================================================================
 // GROUP CONSTANTS (ORGANIZED HIERARCHY)
 // =============================================================================
-G_CALC   = '01. Position Size Calculator'
-G_WM     = '02. Watermark & Macro Status'
-G_KZ     = '03. Master Killzones & Style Controls'
-G_TIME   = '04. Session Schedules (HHMM-HHMM)'
-G_RANGE  = '05. Session Range Boxes & Line Extensions'
-G_TDO    = '06. True Day Open (Midnight)'
-G_930    = '07. 9:30 AM Opening Bell Lines'
-G_HL     = '08. High Timeframe Levels (PDH/PDL & PWH/PWL)'
-G_SWEEP  = '09. Liquidity Sweep Detection (x)'
-G_GAPS   = '10. Opening Gaps (NDOG & NWOG)'
-G_H4     = '11. 4-Hour Opening Price Lines'
+G_CALC   = '01. POSITION SIZE CALCULATOR'
+G_WM     = '02. WATERMARK & MACRO STATUS'
+G_KZ     = '03. MASTER KILLZONES & STYLE CONTROLS'
+G_TIME   = '04. SESSION SCHEDULES (HHMM-HHMM)'
+G_RANGE  = '05. SESSION RANGE BOXES & LINE EXTENSIONS'
+G_TDO    = '06. TRUE DAY OPEN (MIDNIGHT)'
+G_930    = '07. 9:30 AM OPENING BELL LINES'
+G_HL     = '08. HIGH TIMEFRAME LEVELS (PDH/PDL & PWH/PWL)'
+G_SWEEP  = '09. LIQUIDITY SWEEP DETECTION (X)'
+G_GAPS   = '10. OPENING GAPS (NDOG & NWOG)'
+G_H4     = '11. 4-HOUR OPENING PRICE LINES'
 
 // =============================================================================
 // 1. POSITION SIZE CALCULATOR INPUTS
 // =============================================================================
 show_calc        = input.bool(true, "Show Risk Calculator Panel", group=G_CALC)
-risk_usd         = input.float(150, "Risk Amount ($)", step=10, group=G_CALC)
-sl_points        = input.float(15, "Stop Loss (Points)", step=1, group=G_CALC)
+risk_usd         = input.float(500, "Risk Amount ($)", step=10, group=G_CALC)
+sl_points        = input.float(25, "Stop Loss (Points)", step=1, group=G_CALC)
 calc_pos_str     = input.string("Bottom Right", "Panel Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_CALC)
 calc_bg_transp   = input.int(85, "Panel Background Transparency", minval=0, maxval=100, group=G_CALC)
 
@@ -29,19 +29,19 @@ calc_bg_transp   = input.int(85, "Panel Background Transparency", minval=0, maxv
 // 2. WATERMARK & MACRO INPUTS
 // =============================================================================
 show_wm          = input.bool(true, "Show Watermark", group=G_WM)
-wm_title         = input.string("NQ1!", "Title Text", group=G_WM)
-wm_sub           = input.string("NASDAQ 100", "Subtitle Text", group=G_WM)
-wm_pos           = input.string("Bottom Left", "Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_WM)
+wm_title         = input.string("@ Vocurit", "Title Text", group=G_WM)
+wm_sub           = input.string("Success is a choice not a option", "Subtitle Text", group=G_WM)
+wm_pos           = input.string("Top Right", "Position", options=["Top Right", "Bottom Right", "Bottom Left", "Top Left"], group=G_WM)
 wm_order         = input.string("Title Above Subtitle", "Text Order", options=["Title Above Subtitle", "Subtitle Above Title"], group=G_WM)
 wm_spacing       = input.int(0, "Spacing (Line Breaks between Text)", minval=0, maxval=5, group=G_WM)
-wm_color_title   = input.color(color.new(color.white, 80), "Title Color", inline="wm_c", group=G_WM)
-wm_color_sub     = input.color(color.new(color.gray, 80), "Subtitle Color", inline="wm_c", group=G_WM)
+wm_color_title   = input.color(color.white, "Title Color", inline="wm_c", group=G_WM)
+wm_color_sub     = input.color(color.new(color.gray, 50), "Subtitle Color", inline="wm_c", group=G_WM)
 wm_sz_title_str  = input.string("large", "Title Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="wm_s", group=G_WM)
 wm_sz_sub_str    = input.string("normal", "Subtitle Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="wm_s", group=G_WM)
 
 show_macro       = input.bool(true, "Show Macro Window Status", group=G_WM)
-macro_attach     = input.string("Watermark", "Attach Macro To:", options=["Watermark", "Position Size Calculator"], group=G_WM)
-macro_color      = input.color(color.new(#ff5252, 30), "Macro Color", inline="mac", group=G_WM)
+macro_attach     = input.string("Position Size Calculator", "Attach Macro To:", options=["Watermark", "Position Size Calculator"], group=G_WM)
+macro_color      = input.color(color.new(#ff5252, 0), "Macro Color", inline="mac", group=G_WM)
 macro_sz_str     = input.string("normal", "Macro Text Size", options=["tiny", "small", "normal", "large", "huge", "auto"], inline="mac", group=G_WM)
 
 // =============================================================================
@@ -51,26 +51,26 @@ kz_filter        = input.bool(true, "Master Killzones Toggle", group=G_KZ)
 kz_style         = input.string("Label", "Killzone Display Style", options=["Label", "Top", "Bottom"], group=G_KZ)
 
 show_asia_kz     = input.bool(true, "Asia Killzone", inline="asia_t", group=G_KZ)
-asia_color       = input.color(color.new(#ea7e7e, 80), "", inline="asia_t", group=G_KZ)
+asia_color       = input.color(color.new(#8b0000, 20), "", inline="asia_t", group=G_KZ)
 
 show_lokz_kz     = input.bool(true, "London (lokz) Killzone", inline="lo_t", group=G_KZ)
-lokz_color       = input.color(color.new(#6c66db, 80), "", inline="lo_t", group=G_KZ)
+lokz_color       = input.color(color.new(#1e3a8a, 20), "", inline="lo_t", group=G_KZ)
 
 show_nyam_kz     = input.bool(true, "NY AM Killzone", inline="nyam_t", group=G_KZ)
-nyam_color       = input.color(color.new(#57b070, 80), "", inline="nyam_t", group=G_KZ)
+nyam_color       = input.color(color.new(#374151, 70), "", inline="nyam_t", group=G_KZ)
 
 show_nylunch_kz  = input.bool(true, "NY Lunch Killzone", inline="nylunch_t", group=G_KZ)
-nylunch_color    = input.color(color.new(#ffeb3b, 80), "", inline="nylunch_t", group=G_KZ)
+nylunch_color    = input.color(color.new(#374151, 70), "", inline="nylunch_t", group=G_KZ)
 
 show_nypm_kz     = input.bool(true, "NY PM Killzone", inline="nypm_t", group=G_KZ)
-nypm_color       = input.color(color.new(#00bcd4, 80), "", inline="nypm_t", group=G_KZ)
+nypm_color       = input.color(color.new(#374151, 70), "", inline="nypm_t", group=G_KZ)
 
 vert_line_style  = input.string(line.style_solid, 'Vertical Line Style', options=[line.style_solid, line.style_dotted, line.style_dashed], group=G_KZ)
 vert_line_origin = input.string("Top", "Vertical Line Origin (Label Style)", options=["Top", "Bottom"], group=G_KZ)
-kz_line_transp   = input.int(20, "Vertical Line Transparency (0-100)", minval=0, maxval=100, group=G_KZ)
+kz_line_transp   = input.int(50, "Vertical Line Transparency (0-100)", minval=0, maxval=100, group=G_KZ)
 
 kz_text_color    = input.color(color.white, "Text Color", inline="txt_style", group=G_KZ)
-kz_text_size_str = input.string("tiny", "Killzone Text Size", options=["auto", "tiny", "small", "normal", "large", "huge"], inline="txt_style", group=G_KZ)
+kz_text_size_str = input.string("small", "Killzone Text Size", options=["auto", "tiny", "small", "normal", "large", "huge"], inline="txt_style", group=G_KZ)
 
 // =============================================================================
 // 4. SESSION SCHEDULES (HHMM-HHMM)
@@ -94,26 +94,26 @@ ext_asia_line    = input.bool(true, "Extend Lines", inline="r_asia", group=G_RAN
 show_lokz_box    = input.bool(true, "London Box", inline="r_lo", group=G_RANGE)
 ext_lokz_line    = input.bool(true, "Extend Lines", inline="r_lo", group=G_RANGE)
 
-show_nyam_box    = input.bool(true, "NY AM Box", inline="r_nyam", group=G_RANGE)
+show_nyam_box    = input.bool(false, "NY AM Box", inline="r_nyam", group=G_RANGE)
 ext_nyam_line    = input.bool(true, "Extend Lines", inline="r_nyam", group=G_RANGE)
 
-show_nyl_box     = input.bool(true, "NY Lunch Box", inline="r_nyl", group=G_RANGE)
+show_nyl_box     = input.bool(false, "NY Lunch Box", inline="r_nyl", group=G_RANGE)
 ext_nyl_line     = input.bool(true, "Extend Lines", inline="r_nyl", group=G_RANGE)
 
-show_nypm_box    = input.bool(true, "NY PM Box", inline="r_nypm", group=G_RANGE)
+show_nypm_box    = input.bool(false, "NY PM Box", inline="r_nypm", group=G_RANGE)
 ext_nypm_line    = input.bool(true, "Extend Lines", inline="r_nypm", group=G_RANGE)
 
-ext_line_style   = input.string(line.style_dashed, "Ext Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="ext_s", group=G_RANGE)
+ext_line_style   = input.string(line.style_solid, "Ext Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="ext_s", group=G_RANGE)
 ext_line_width   = input.int(1, "Width", minval=1, maxval=5, inline="ext_s", group=G_RANGE)
-ext_line_transp  = input.int(20, "Transparency (0-100)", minval=0, maxval=100, inline="ext_s", group=G_RANGE)
+ext_line_transp  = input.int(67, "Transparency (0-100)", minval=0, maxval=100, inline="ext_s", group=G_RANGE)
 
 // =============================================================================
 // 6. TRUE DAY OPEN (MIDNIGHT)
 // =============================================================================
 show_daily       = input.bool(true, "Vertical Line at Daily Open", group=G_TDO)
 show_mnoline     = input.bool(true, "Show True Day Open Line (Max 2)", inline="tdo_m", group=G_TDO)
-mno_color        = input.color(color.new(color.orange, 20), "", inline="tdo_m", group=G_TDO)
-mno_style        = input.string(line.style_dotted, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="tdo_s", group=G_TDO)
+mno_color        = input.color(color.new(color.white, 30), "", inline="tdo_m", group=G_TDO)
+mno_style        = input.string(line.style_dashed, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="tdo_s", group=G_TDO)
 mno_width        = input.int(1, "Width", minval=1, maxval=5, inline="tdo_s", group=G_TDO)
 
 // =============================================================================
@@ -121,24 +121,24 @@ mno_width        = input.int(1, "Width", minval=1, maxval=5, inline="tdo_s", gro
 // =============================================================================
 show_930_line    = input.bool(true, "Show 9:30 AM Vertical Lines", group=G_930)
 past_930_count   = input.int(2, "Number of Past 9:30 AM Lines", minval=0, group=G_930)
-line_930_color   = input.color(color.new(color.yellow, 30), "9:30 Line Color", inline="930_s", group=G_930)
-line_930_style   = input.string(line.style_dashed, "Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="930_s", group=G_930)
+line_930_color   = input.color(color.new(color.gray, 30), "9:30 Line Color", inline="930_s", group=G_930)
+line_930_style   = input.string(line.style_solid, "Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="930_s", group=G_930)
 line_930_width   = input.int(1, "Width", minval=1, maxval=5, inline="930_s", group=G_930)
 
 // =============================================================================
 // 8. HIGH TIMEFRAME LEVELS (PDH/PDL & PWH/PWL)
 // =============================================================================
 show_pdh         = input.bool(true, "Show PDH", inline="pdh_t", group=G_HL)
-pdh_color        = input.color(color.green, "", inline="pdh_t", group=G_HL)
+pdh_color        = input.color(#b91c1c, "", inline="pdh_t", group=G_HL)
 
 show_pdl         = input.bool(true, "Show PDL", inline="pdl_t", group=G_HL)
-pdl_color        = input.color(color.red, "", inline="pdl_t", group=G_HL)
+pdl_color        = input.color(#b91c1c, "", inline="pdl_t", group=G_HL)
 
 show_pwh         = input.bool(true, "Show PWH", inline="pwh_t", group=G_HL)
-pwh_color        = input.color(color.lime, "", inline="pwh_t", group=G_HL)
+pwh_color        = input.color(#b91c1c, "", inline="pwh_t", group=G_HL)
 
 show_pwl         = input.bool(true, "Show PWL", inline="pwl_t", group=G_HL)
-pwl_color        = input.color(color.maroon, "", inline="pwl_t", group=G_HL)
+pwl_color        = input.color(#b91c1c, "", inline="pwl_t", group=G_HL)
 
 hl_line_style    = input.string(line.style_solid, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="hl_s", group=G_HL)
 hl_line_width    = input.int(1, "Width", minval=1, maxval=5, inline="hl_s", group=G_HL)
@@ -149,37 +149,48 @@ show_hl_labels   = input.bool(true, "Show Labels on Right", group=G_HL)
 // 9. LIQUIDITY SWEEP DETECTION (X)
 // =============================================================================
 show_sweeps      = input.bool(true, "Show Sweep Detection (x)", group=G_SWEEP)
-sweep_color      = input.color(color.new(#ff5252, 0), "Sweep Indicator Color", inline="swp", group=G_SWEEP)
+sweep_color      = input.color(#b91c1c, "Sweep Indicator Color", inline="swp", group=G_SWEEP)
 sweep_sz_str     = input.string("small", "Sweep Indicator Size", options=["tiny", "small", "normal", "large", "auto"], inline="swp", group=G_SWEEP)
 
 // =============================================================================
 // 10. OPENING GAPS (NDOG & NWOG)
 // =============================================================================
 show_ndog        = input.bool(true, "Show NDOG (New Day Opening Gap)", inline="ndog_t", group=G_GAPS)
-ndog_color       = input.color(color.blue, "", inline="ndog_t", group=G_GAPS)
+ndog_color       = input.color(#2563eb, "", inline="ndog_t", group=G_GAPS)
 
 show_nwog        = input.bool(true, "Show NWOG (New Week Opening Gap)", inline="nwog_t", group=G_GAPS)
-nwog_color       = input.color(color.purple, "", inline="nwog_t", group=G_GAPS)
+nwog_color       = input.color(#3b82f6, "", inline="nwog_t", group=G_GAPS)
 
 gap_transp       = input.int(80, "Gap Box Transparency (0-100)", minval=0, maxval=100, group=G_GAPS)
 gap_text_color   = input.color(color.white, "Gap Text Color", inline="gap_txt", group=G_GAPS)
-gap_text_sz_str  = input.string("tiny", "Text Size", options=["auto", "tiny", "small", "normal", "large"], inline="gap_txt", group=G_GAPS)
+gap_text_sz_str  = input.string("small", "Text Size", options=["auto", "tiny", "small", "normal", "large"], inline="gap_txt", group=G_GAPS)
 
 // =============================================================================
 // 11. 4-HOUR OPENING PRICE LINES
 // =============================================================================
 show_4h_opens    = input.bool(true, "Show 4-Hour Open Lines", inline="h4_m", group=G_H4)
-h4_color         = input.color(color.new(color.aqua, 30), "", inline="h4_m", group=G_H4)
-h4_style         = input.string(line.style_dashed, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="h4_s", group=G_H4)
+h4_color         = input.color(color.new(color.gray, 40), "", inline="h4_m", group=G_H4)
+h4_style         = input.string(line.style_dotted, "Line Style", options=[line.style_solid, line.style_dotted, line.style_dashed], inline="h4_s", group=G_H4)
 h4_width         = input.int(1, "Width", minval=1, maxval=5, inline="h4_s", group=G_H4)
 show_h4_labels   = input.bool(true, "Show Labels on Right", group=G_H4)
 
-show_h4_1800     = input.bool(true, "6:00 PM (Prev Day)", group=G_H4)
-show_h4_2200     = input.bool(true, "10:00 PM", group=G_H4)
-show_h4_0200     = input.bool(true, "2:00 AM", group=G_H4)
-show_h4_0600     = input.bool(true, "6:00 AM", group=G_H4)
-show_h4_1000     = input.bool(true, "10:00 AM", group=G_H4)
-show_h4_1400     = input.bool(true, "2:00 PM", group=G_H4)
+show_h4_1800     = input.bool(false, "6:00 PM (Prev Day)", inline="h4_18", group=G_H4)
+buf_h4_1800      = input.int(15, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_18", group=G_H4)
+
+show_h4_2200     = input.bool(true, "10:00 PM", inline="h4_22", group=G_H4)
+buf_h4_2200      = input.int(30, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_22", group=G_H4)
+
+show_h4_0200     = input.bool(true, "2:00 AM", inline="h4_02", group=G_H4)
+buf_h4_0200      = input.int(30, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_02", group=G_H4)
+
+show_h4_0600     = input.bool(true, "6:00 AM", inline="h4_06", group=G_H4)
+buf_h4_0600      = input.int(15, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_06", group=G_H4)
+
+show_h4_1000     = input.bool(true, "10:00 AM", inline="h4_10", group=G_H4)
+buf_h4_1000      = input.int(15, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_10", group=G_H4)
+
+show_h4_1400     = input.bool(true, "2:00 PM", inline="h4_14", group=G_H4)
+buf_h4_1400      = input.int(15, "Buffer (Mins, 0=Infinite)", minval=0, maxval=240, inline="h4_14", group=G_H4)
 
 // =============================================================================
 // HELPER FUNCTIONS & VALIDATION
@@ -813,7 +824,7 @@ if tf_is_valid
         if show_pdl
             line.delete(pdl_l), label.delete(pdl_lbl)
             pdl_l   := line.new(bar_index, pd_low, bar_index + 1, pd_low, color = color.new(pdl_color, hl_line_transp), style = hl_line_style, width = hl_line_width)
-            pdl_lbl := show_hl_labels ? label.new(bar_index + 1, pd_low, "PDL", color = color.new(color.white, 100), textcolor = pdl_color, style = label.style_label_left, size = size.tiny) : na
+            pdl_lbl := show_hl_labels ? label.new(bar_index + 1, pd_low, "PDL", color = color.new(color.white, 100), textcolor = pdh_color, style = label.style_label_left, size = size.tiny) : na
             pdl_act := true
 
     if is_new_week
@@ -829,7 +840,6 @@ if tf_is_valid
             pwl_lbl := show_hl_labels ? label.new(bar_index + 1, pw_low, "PWL", color = color.new(color.white, 100), textcolor = pwl_color, style = label.style_label_left, size = size.tiny) : na
             pwl_act := true
 
-    // Single-Sweep Tracking: Line stops & triggers sweep only ONCE
     if pdh_act and not na(pdh_l)
         line.set_x2(pdh_l, bar_index + 1)
         if not na(pdh_lbl)
@@ -909,82 +919,147 @@ if tf_gap_valid
             nwog_act := false
 
 // ==========================================
-// 15. 4-HOUR OPENING PRICE LINES (ROLLING 24-HOUR CYCLE)
+// 15. 4-HOUR OPENING PRICE LINES (CUSTOM MINUTE BUFFER & SWEEPS)
 // ==========================================
-var line l_h4_1800 = na, var label lbl_h4_1800 = na
-var line l_h4_2200 = na, var label lbl_h4_2200 = na
-var line l_h4_0200 = na, var label lbl_h4_0200 = na
-var line l_h4_0600 = na, var label lbl_h4_0600 = na
-var line l_h4_1000 = na, var label lbl_h4_1000 = na
-var line l_h4_1400 = na, var label lbl_h4_1400 = na
+var line l_h4_1800 = na, var label lbl_h4_1800 = na, var float p_h4_1800 = na, var bool act_h4_1800 = false, var int bar_h4_1800 = na
+var line l_h4_2200 = na, var label lbl_h4_2200 = na, var float p_h4_2200 = na, var bool act_h4_2200 = false, var int bar_h4_2200 = na
+var line l_h4_0200 = na, var label lbl_h4_0200 = na, var float p_h4_0200 = na, var bool act_h4_0200 = false, var int bar_h4_0200 = na
+var line l_h4_0600 = na, var label lbl_h4_0600 = na, var float p_h4_0600 = na, var bool act_h4_0600 = false, var int bar_h4_0600 = na
+var line l_h4_1000 = na, var label lbl_h4_1000 = na, var float p_h4_1000 = na, var bool act_h4_1000 = false, var int bar_h4_1000 = na
+var line l_h4_1400 = na, var label lbl_h4_1400 = na, var float p_h4_1400 = na, var bool act_h4_1400 = false, var int bar_h4_1400 = na
 
 if tf_is_valid and show_4h_opens
+    // 18:00 (6:00 PM)
     bool s_1800 = not na(time(timeframe.period, session = "1800-1801", timezone = "America/New_York"))
     if s_1800 and not s_1800[1] and show_h4_1800
         line.delete(l_h4_0600), label.delete(lbl_h4_0600)
         line.delete(l_h4_1800), label.delete(lbl_h4_1800)
-        l_h4_1800 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_1800   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1800 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_1800   := open
+        act_h4_1800 := true
+        bar_h4_1800 := time
 
+    // 22:00 (10:00 PM)
     bool s_2200 = not na(time(timeframe.period, session = "2200-2201", timezone = "America/New_York"))
     if s_2200 and not s_2200[1] and show_h4_2200
         line.delete(l_h4_1000), label.delete(lbl_h4_1000)
         line.delete(l_h4_2200), label.delete(lbl_h4_2200)
-        l_h4_2200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_2200   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_2200 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_2200   := open
+        act_h4_2200 := true
+        bar_h4_2200 := time
 
+    // 02:00 (2:00 AM)
     bool s_0200 = not na(time(timeframe.period, session = "0200-0201", timezone = "America/New_York"))
     if s_0200 and not s_0200[1] and show_h4_0200
         line.delete(l_h4_1400), label.delete(lbl_h4_1400)
         line.delete(l_h4_0200), label.delete(lbl_h4_0200)
-        l_h4_0200 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_0200   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0200 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_0200   := open
+        act_h4_0200 := true
+        bar_h4_0200 := time
 
+    // 06:00 (6:00 AM)
     bool s_0600 = not na(time(timeframe.period, session = "0600-0601", timezone = "America/New_York"))
     if s_0600 and not s_0600[1] and show_h4_0600
         line.delete(l_h4_1800), label.delete(lbl_h4_1800)
         line.delete(l_h4_0600), label.delete(lbl_h4_0600)
-        l_h4_0600 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_0600   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_0600 := show_h4_labels ? label.new(bar_index + 1, open, "6:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_0600   := open
+        act_h4_0600 := true
+        bar_h4_0600 := time
 
+    // 10:00 (10:00 AM)
     bool s_1000 = not na(time(timeframe.period, session = "1000-1001", timezone = "America/New_York"))
     if s_1000 and not s_1000[1] and show_h4_1000
         line.delete(l_h4_2200), label.delete(lbl_h4_2200)
         line.delete(l_h4_1000), label.delete(lbl_h4_1000)
-        l_h4_1000 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_1000   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1000 := show_h4_labels ? label.new(bar_index + 1, open, "10:00 AM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_1000   := open
+        act_h4_1000 := true
+        bar_h4_1000 := time
 
+    // 14:00 (2:00 PM)
     bool s_1400 = not na(time(timeframe.period, session = "1400-1401", timezone = "America/New_York"))
     if s_1400 and not s_1400[1] and show_h4_1400
         line.delete(l_h4_0200), label.delete(lbl_h4_0200)
         line.delete(l_h4_1400), label.delete(lbl_h4_1400)
-        l_h4_1400 := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
+        l_h4_1400   := line.new(bar_index, open, bar_index + 1, open, color = h4_color, style = h4_style, width = h4_width)
         lbl_h4_1400 := show_h4_labels ? label.new(bar_index + 1, open, "2:00 PM 4H Open", color = color.new(color.white, 100), textcolor = h4_color, style = label.style_label_left, size = size.tiny) : na
+        p_h4_1400   := open
+        act_h4_1400 := true
+        bar_h4_1400 := time
 
+    // 18:00 (6:00 PM) Buffer & Sweep Check
     if not na(l_h4_1800)
-        line.set_x2(l_h4_1800, bar_index + 1)
-        if not na(lbl_h4_1800)
-            label.set_x(lbl_h4_1800, bar_index + 1)
+        if act_h4_1800
+            line.set_x2(l_h4_1800, bar_index + 1)
+            if not na(lbl_h4_1800)
+                label.set_x(lbl_h4_1800, bar_index + 1)
+            if buf_h4_1800 > 0 and (time - bar_h4_1800) >= (buf_h4_1800 * 60000) and (high >= p_h4_1800 and low <= p_h4_1800)
+                act_h4_1800 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_1800 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1800 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+
+    // 22:00 (10:00 PM) Buffer & Sweep Check
     if not na(l_h4_2200)
-        line.set_x2(l_h4_2200, bar_index + 1)
-        if not na(lbl_h4_2200)
-            label.set_x(lbl_h4_2200, bar_index + 1)
+        if act_h4_2200
+            line.set_x2(l_h4_2200, bar_index + 1)
+            if not na(lbl_h4_2200)
+                label.set_x(lbl_h4_2200, bar_index + 1)
+            if buf_h4_2200 > 0 and (time - bar_h4_2200) >= (buf_h4_2200 * 60000) and (high >= p_h4_2200 and low <= p_h4_2200)
+                act_h4_2200 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_2200 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_2200 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+
+    // 02:00 (2:00 AM) Buffer & Sweep Check
     if not na(l_h4_0200)
-        line.set_x2(l_h4_0200, bar_index + 1)
-        if not na(lbl_h4_0200)
-            label.set_x(lbl_h4_0200, bar_index + 1)
+        if act_h4_0200
+            line.set_x2(l_h4_0200, bar_index + 1)
+            if not na(lbl_h4_0200)
+                label.set_x(lbl_h4_0200, bar_index + 1)
+            if buf_h4_0200 > 0 and (time - bar_h4_0200) >= (buf_h4_0200 * 60000) and (high >= p_h4_0200 and low <= p_h4_0200)
+                act_h4_0200 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_0200 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_0200 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+
+    // 06:00 (6:00 AM) Buffer & Sweep Check
     if not na(l_h4_0600)
-        line.set_x2(l_h4_0600, bar_index + 1)
-        if not na(lbl_h4_0600)
-            label.set_x(lbl_h4_0600, bar_index + 1)
+        if act_h4_0600
+            line.set_x2(l_h4_0600, bar_index + 1)
+            if not na(lbl_h4_0600)
+                label.set_x(lbl_h4_0600, bar_index + 1)
+            if buf_h4_0600 > 0 and (time - bar_h4_0600) >= (buf_h4_0600 * 60000) and (high >= p_h4_0600 and low <= p_h4_0600)
+                act_h4_0600 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_0600 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_0600 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+
+    // 10:00 (10:00 AM) Buffer & Sweep Check
     if not na(l_h4_1000)
-        line.set_x2(l_h4_1000, bar_index + 1)
-        if not na(lbl_h4_1000)
-            label.set_x(lbl_h4_1000, bar_index + 1)
+        if act_h4_1000
+            line.set_x2(l_h4_1000, bar_index + 1)
+            if not na(lbl_h4_1000)
+                label.set_x(lbl_h4_1000, bar_index + 1)
+            if buf_h4_1000 > 0 and (time - bar_h4_1000) >= (buf_h4_1000 * 60000) and (high >= p_h4_1000 and low <= p_h4_1000)
+                act_h4_1000 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_1000 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1000 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
+
+    // 14:00 (2:00 PM) Buffer & Sweep Check
     if not na(l_h4_1400)
-        line.set_x2(l_h4_1400, bar_index + 1)
-        if not na(lbl_h4_1400)
-            label.set_x(lbl_h4_1400, bar_index + 1)
+        if act_h4_1400
+            line.set_x2(l_h4_1400, bar_index + 1)
+            if not na(lbl_h4_1400)
+                label.set_x(lbl_h4_1400, bar_index + 1)
+            if buf_h4_1400 > 0 and (time - bar_h4_1400) >= (buf_h4_1400 * 60000) and (high >= p_h4_1400 and low <= p_h4_1400)
+                act_h4_1400 := false
+                if show_sweeps
+                    label.new(bar_index, high >= p_h4_1400 ? high : low, "x", color=color.new(color.white, 100), textcolor=sweep_color, style=high >= p_h4_1400 ? label.style_label_down : label.style_label_up, size=get_text_size(sweep_sz_str))
 
 plotchar(tf_is_valid and top_bottom == 1 and in_kz, "in_killzone", "•", location.top, size = size.tiny, color = color.new(kz_color,30))
 plotchar(tf_is_valid and top_bottom == 2 and in_kz, "in_killzone", "•", location.bottom, size = size.tiny, color = color.new(kz_color,30))
