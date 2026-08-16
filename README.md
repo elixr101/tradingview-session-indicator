@@ -1,4 +1,4 @@
-# ◼️ KILLZONES & EXECUTION SUITE [v5]
+# ◼️ KILLZONES & EXECUTION SUITE [v6]
 
 > Institutional time-and-price delivery engine with strict memory management for TradingView.
 
@@ -11,27 +11,40 @@ Built specifically for high-precision execution across index and commodity futur
 ### ◾ CORE ARCHITECTURE
 
 **Strict 2-Session Memory Protocol**  
-Drawings are strictly managed to preserve chart performance. The engine holds a maximum of two historical sessions per killzone, instantly purging obsolete boxes and lines from memory the moment a new session opens.
+Drawings are strictly managed to preserve chart performance. The engine holds a maximum of two historical sessions per killzone, instantly purging obsolete boxes, lines, and bound LTF sweeps from memory the moment a new session opens.
 
-**15-Minute Forward Projections**  
-A dynamic visual engine. Exactly 15 minutes before an impending session open, a forward line and label project along the future x-axis, anchoring into the live range box at the opening bell.
+**Dynamic Wick-to-Wick REQH / REQL Engine**  
+Timeframe-aware relative equal highs and lows detection that auto-deletes the exact moment liquidity is raided.
+* **LTF (<15m):** High-precision buffers (0.25 pts). Levels are strictly bound to active Killzone visibility blocks to prevent out-of-session clutter. 
+* **HTF (15m+):** Expanding algorithmic buffers (1.5 pts up to 3.0 pts for Daily+) with independent persistent lifespans (1-week to 1-month). 
 
-**True Day Open (TDO) Sweep Protocol**  
-Plots the 00:00 NY True Day Open. Ignores pre-market overnight chop, only activating its sweep logic at 8:30 AM NY. The line automatically terminates the exact tick price sweeps the level.
+**Advanced Liquidity Sweeps (`x`) & FIFO Limits**  
+Monitors HTF levels (`PDH`, `PDL`, `PWH`, `PWL`), active session extremes, and 4H opens. Drops an `x` marker on the raiding wick the instant price breaches liquidity by a single tick. Features a customizable **First-In-First-Out (FIFO) queue** (e.g., max 2 markers per session) to aggressively eliminate chart clutter during heavy chop. 
 
-**Single-Trigger Liquidity Sweeps (`x`)**  
-Monitors HTF levels (`PDH`, `PDL`, `PWH`, `PWL`) and active session extremes. Drops an `x` marker on the raiding wick the instant price breaches liquidity by a single tick, immediately deactivating the level to eliminate repetitive false signals.
+**Rolling 24-Hour 4H Opens**  
+Automates the institutional 6-tier 4H cycle (18:00, 22:00, 02:00, 06:00, 10:00, 14:00 NY). Yesterday's levels—along with their respective sweep markers and erasable structural candle highlights—are automatically purged as new blocks print.
 
 **True Algorithmic Gap Tracking (NDOG & NWOG)**  
 Calculates true price imbalances between session closes and opens. Projects opening gaps forward continuously until incoming candle price action fully balances the void.
 
-**Rolling 24-Hour 4H Opens**  
-Automates the institutional 6-tier 4H cycle (18:00, 22:00, 02:00, 06:00, 10:00, 14:00 NY), automatically cycling out yesterday's levels as new blocks print.
+**True Day Open (TDO) Sweep Protocol**  
+Plots the 00:00 NY True Day Open. Ignores pre-market overnight chop, only activating its sweep logic at 8:30 AM NY. The line automatically terminates the exact tick price sweeps the level.
 
-**On-Chart Execution Desk & Macro HUD**  
-* **Risk/Position Desk:** Reads native contract point values (`syminfo.pointvalue`) to output exact sizing and micro allocations based on user-defined dollar risk and point stop loss.
-* **Macro Window Indicator:** Auto-tracks the hourly institutional 20-minute macro injections (xx:45–xx:15).
-* **Minimalist HUD Watermark:** Configurable typography panel with multi-line spacing control.
+**15-Minute Forward Projections**  
+A dynamic visual engine. Exactly 15 minutes before an impending session open, a forward line and label project along the future x-axis, anchoring into the live range box at the opening bell.
+
+---
+
+### ◾ ON-CHART UI & HUD
+
+**Risk & Position Desk**  
+Reads native contract point values (`syminfo.pointvalue`) to output exact sizing and micro allocations based on user-defined dollar risk and point stop loss. 
+
+**Dynamic Sweep Alert HUD**  
+Real-time, on-screen text alerts (e.g., "PDH SWEPT", "ASIA HIGH SWEPT") that inject natively into the Position Desk, Watermark, or a customizable Standalone panel. Features smart vertical stacking (auto-inverting based on screen anchors) and automated time-decay pruning (alerts vanish after a custom minute duration).
+
+**Macro Window Indicator**  
+Auto-tracks the hourly institutional 30-minute macro injections (xx:45–xx:15), dynamically displaying its status on the HUD.
 
 ---
 
